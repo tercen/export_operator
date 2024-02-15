@@ -1,1 +1,2 @@
-git+https://github.com/tercen/tercen_python_client@0.9.3
+git+https://github.com/tercen/tercen_python_client@0.10.3
+python-pptx==0.6.*

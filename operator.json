@@ -1,9 +1,20 @@
 {
-    "name": "Template Python operator",
-    "description": "Mean operator implemented in Python",
-    "tags": ["template"],
+    "name": "Export Operator",
+    "description": "Export workflow report in different file formats.",
+    "tags": ["workflow", "plot", "report"],
     "authors": ["tercen"],
-    "urls": ["https://github.com/tercen/template-python-operator"],
-    "container":"tercen/template-python-operator:latest",
-    "properties": [ ]
+    "urls": ["https://github.com/tercen/export_operator"],
+    "container":"tercen/export_operator:latest",
+    "properties": [ 
+        {
+            "kind": "EnumeratedProperty",
+            "name": "OutputFormat",
+            "defaultValue": "PowerPoint (*.pptx)",
+            "description": "Format in which the report is exported.",
+            "values": [
+              "PowerPoint (*.pptx)",
+              "PDF - Slides (*.pdf)"
+            ]
+        }
+    ]
 }
