@@ -3,7 +3,7 @@ from tercen.model.impl import SimpleRelation, CompositeRelation, RenameRelation
 import tercen.http.HttpClientService as http
 
 from pptx import Presentation
-from pptx.util import Inches
+
 
 from PIL import Image
 
@@ -98,15 +98,15 @@ def table_to_file(ctx, schema, tmpFolder=None):
 
 
 #310ae60ad93ec799406fcc2404141831/ds/785e21c9-acd7-4967-a37a-2dff81ce3cf3
-# ctx = context.TercenContext(workflowId="310ae60ad93ec799406fcc2404141831",\
-#                             stepId="785e21c9-acd7-4967-a37a-2dff81ce3cf3")
-ctx = context.TercenContext()
-outputFormat = ctx.operator_property('OutputFormat', typeFn=string, default="PowerPoint (*.pptx)")
+# tercenCtx = context.TercenContext(workflowId="310ae60ad93ec799406fcc2404141831",\
+                            # stepId="785e21c9-acd7-4967-a37a-2dff81ce3cf3")
+tercenCtx = context.TercenContext()
+outputFormat = tercenCtx.operator_property('OutputFormat', typeFn=string, default="PowerPoint (*.pptx)")
 
-workflow = ctx.context.client.workflowService.get(ctx.context.workflowId)
+workflow = tercenCtx.context.client.workflowService.get(tercenCtx.context.workflowId)
 
 
-tmpFolder = "/tmp/"  + ctx.context.workflowId
+tmpFolder = "/tmp/"  + tercenCtx.context.workflowId
 if os.path.exists(tmpFolder):
     shutil.rmtree(tmpFolder)
 os.makedirs(tmpFolder )
@@ -121,7 +121,7 @@ else:
     raise ValueError("unsupported format")
 
 for stpName,schema in schemas.items():
-    fileInfo = table_to_file(ctx, schema,  tmpFolder=tmpFolder)
+    fileInfo = table_to_file(tercenCtx, schema,  tmpFolder=tmpFolder)
     
     if fileInfo[2].startswith("image"):
     # aspectRatio = imInfo[1][1]/imInfo[1][0]
@@ -138,8 +138,8 @@ for stpName,schema in schemas.items():
 
 
 
-imgDf = expo.as_dataframe( "/tmp/"  + ctx.context.workflowId + "/" + workflow.name + "_Report")
+imgDf = expo.as_dataframe( "/tmp/"  + tercenCtx.context.workflowId + "/" + workflow.name + "_Report")
 
 
-imgDf = ctx.add_namespace(imgDf)
-ctx.save(imgDf)
+imgDf = tercenCtx.add_namespace(imgDf)
+tercenCtx.save(imgDf)
