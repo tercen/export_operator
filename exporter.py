@@ -5,7 +5,7 @@ import datetime
 from io import BytesIO
 from hashlib import md5
 from base64 import b64encode
-from polars import DataFrame
+from polars import DataFrame, col, Int32
 from os.path import basename
 import subprocess
 import random, string
@@ -160,6 +160,8 @@ class PPTXExporter(Exporter):
             "checksum":[checksum],\
             ".content":[str(b64encode(fileBytes).decode("utf-8"))]\
             })
+        
+        imgDf = imgDf.with_column(col('bar').cast(Int32))
         return imgDf
     
 
