@@ -1,14 +1,15 @@
 from tercen.client import context as context
 from tercen.model.impl import SimpleRelation, CompositeRelation, RenameRelation
-import tercen.http.HttpClientService as http
+from tercen.http.HttpClientService import decodeTSON
+
 
 from pptx import Presentation
 
 
 from PIL import Image
 
-import zipfile, io, base64, subprocess,string, random, os, shutil
-import time
+import  base64, subprocess, string, random, os, shutil
+# import time
 
 from exporter import PPTXExporter
 #http://127.0.0.1:5400/test/w/310ae60ad93ec799406fcc2404141831/ds/785e21c9-acd7-4967-a37a-2dff81ce3cf3
@@ -48,11 +49,11 @@ def random_string(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
 def table_to_file(ctx, schema, tmpFolder=None):
-    mimetypeTbl = http.decodeTSON(ctx.context.client.tableSchemaService.selectStream(schema.id, ["mimetype"], 0, -1))
+    mimetypeTbl = decodeTSON(ctx.context.client.tableSchemaService.selectStream(schema.id, ["mimetype"], 0, -1))
     ctt =ctx.context.client.tableSchemaService.selectStream(schema.id, [".content"], 0, -1)
 
     
-    bytesTbl = http.decodeTSON(ctt)
+    bytesTbl = decodeTSON(ctt)
     mimetype = mimetypeTbl["columns"][0]["values"][0]
 
     if tmpFolder is None:
@@ -101,7 +102,7 @@ def table_to_file(ctx, schema, tmpFolder=None):
 # tercenCtx = context.TercenContext(workflowId="310ae60ad93ec799406fcc2404141831",\
                             # stepId="785e21c9-acd7-4967-a37a-2dff81ce3cf3")
 tercenCtx = context.TercenContext()
-outputFormat = tercenCtx.operator_property('OutputFormat', typeFn=string, default="PowerPoint (*.pptx)")
+outputFormat = tercenCtx.operator_property('OutputFormat', typeFn=str, default="PowerPoint (*.pptx)")
 
 workflow = tercenCtx.context.client.workflowService.get(tercenCtx.context.workflowId)
 
