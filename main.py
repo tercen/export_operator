@@ -1,5 +1,5 @@
 from tercen.client import context as context
-from tercen.model.impl import SimpleRelation, CompositeRelation, RenameRelation
+from tercen.model.impl import SimpleRelation, CompositeRelation, RenameRelation, Workflow, ImportWorkflowTask
 from tercen.http.HttpClientService import decodeTSON
 
 
@@ -104,10 +104,22 @@ def table_to_file(ctx, schema, tmpFolder=None):
 tercenCtx = context.TercenContext()
 outputFormat = tercenCtx.operator_property('OutputFormat', typeFn=str, default="PowerPoint (*.pptx)")
 
-workflow = tercenCtx.context.client.workflowService.get(tercenCtx.context.workflowId)
+#tercenCtx.schema.projectId
+project = tercenCtx.context.client.projectService.get(tercenCtx.schema.projectId)
+objs = tercenCtx.context.client.persistentService.getDependentObjects(project.id)
 
 
-tmpFolder = "/tmp/"  + tercenCtx.context.workflowId
+workflows = []
+for o in objs:
+    if isinstance(o, Workflow):
+        workflows.append(o)
+
+workflow = tercenCtx.context.client.workflowService.get(workflows[0].id)
+
+
+
+
+tmpFolder = "/tmp/"  + workflow.id
 if os.path.exists(tmpFolder):
     shutil.rmtree(tmpFolder)
 os.makedirs(tmpFolder )
@@ -139,7 +151,7 @@ for stpName,schema in schemas.items():
 
 
 
-imgDf = expo.as_dataframe( "/tmp/"  + tercenCtx.context.workflowId + "/" + workflow.name + "_Report")
+imgDf = expo.as_dataframe( "/tmp/"  + workflow.id + "/" + workflow.name + "_Report")
 
 
 imgDf = tercenCtx.add_namespace(imgDf)
