@@ -34,7 +34,7 @@ def get_simple_relation_id_list(obj):
 
     return idList
 
-def get_plot_schemas(steps):
+def get_plot_schemas(ctx, steps ):
     schemas = {}
     for stp in steps:
         if hasattr(stp, "computedRelation"):
@@ -124,7 +124,7 @@ if os.path.exists(tmpFolder):
     shutil.rmtree(tmpFolder)
 os.makedirs(tmpFolder )
 
-schemas = get_plot_schemas(workflow.steps)
+schemas = get_plot_schemas(tercenCtx, workflow.steps)
 
 if outputFormat == "PowerPoint (*.pptx)":
     expo = PPTXExporter(output="pptx", tmpFolder=tmpFolder)
