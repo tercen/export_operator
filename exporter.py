@@ -162,7 +162,7 @@ class PPTXExporter(Exporter):
             ".content":[str(b64encode(fileBytes).decode("utf-8"))]\
             })
         
-        imgDf = pl.with_column(pl.col('bar').cast(pl.Int32))
+        imgDf = imgDf.with_columns(pl.col('.ci').cast(pl.Int32))
         return imgDf
     
 
