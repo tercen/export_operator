@@ -4,7 +4,7 @@
     "tags": ["workflow", "plot", "report"],
     "authors": ["tercen"],
     "urls": ["https://github.com/tercen/export_operator"],
-    "container":"tercen/export_operator:latest",
+    "container":"tercen/export_operator:0.1.1",
     "properties": [ 
         {
             "kind": "EnumeratedProperty",
