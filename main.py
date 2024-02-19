@@ -1,18 +1,15 @@
 from tercen.client import context as context
-from tercen.model.impl import SimpleRelation, CompositeRelation, RenameRelation, Workflow, ImportWorkflowTask
+from tercen.model.impl import SimpleRelation, CompositeRelation, RenameRelation, Workflow, CubeQueryTask
 from tercen.http.HttpClientService import decodeTSON
 
 from pathlib import Path
 from pptx import Presentation
 
-
-
-
 import  base64, subprocess, string, random, os, shutil
-# import time
+
 
 from exporter import PPTXExporter
-#http://127.0.0.1:5400/test/w/310ae60ad93ec799406fcc2404141831/ds/785e21c9-acd7-4967-a37a-2dff81ce3cf3
+
 
 def get_simple_relation_id_list(obj):
     idList = []
@@ -89,7 +86,7 @@ def table_to_file(ctx, schema, tmpFolder=None):
         
         
 
-        print(mimetype)
+        # print(mimetype)
 
         if mimetype == "image/svg+xml":
             saveImgPath = baseImgPath + ".svg"
@@ -130,20 +127,24 @@ def table_to_file(ctx, schema, tmpFolder=None):
 # tercenCtx = context.TercenContext(workflowId="310ae60ad93ec799406fcc2404141831",\
                             # stepId="785e21c9-acd7-4967-a37a-2dff81ce3cf3")
 tercenCtx = context.TercenContext()
+
 outputFormat = tercenCtx.operator_property('OutputFormat', typeFn=str, default="PowerPoint (*.pptx)")
 
-#tercenCtx.schema.projectId
 project = tercenCtx.context.client.projectService.get(tercenCtx.schema.projectId)
 objs = tercenCtx.context.client.persistentService.getDependentObjects(project.id)
 
 
-workflows = []
-for o in objs:
-    if isinstance(o, Workflow):
-        workflows.append(o)
+if hasattr(tercenCtx.context, "workflowId"):
+    workflow = tercenCtx.context.client.workflowService.get(tercenCtx.context.workflowId)
+else:
+    task = tercenCtx.context.client.taskService.get(tercenCtx.task.id)
 
-workflow = tercenCtx.context.client.workflowService.get(workflows[0].id)
+    workflowId = None
+    for envPair in task.environment:
+        if envPair.key == "workflow.id":
+            workflowId = envPair.value
 
+    workflow = tercenCtx.context.client.workflowService.get(workflowId)
 
 
 
@@ -191,5 +192,5 @@ for stpName,schema in schemas.items():
 imgDf = expo.as_dataframe( "/tmp/"  + workflow.id + "/" + workflow.name + "_Report")
 
 
-# imgDf = tercenCtx.add_namespace(imgDf)
-# tercenCtx.save(imgDf)
+imgDf = tercenCtx.add_namespace(imgDf)
+tercenCtx.save(imgDf)
