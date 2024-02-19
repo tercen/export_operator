@@ -11,6 +11,8 @@ from os.path import basename
 import subprocess
 import random, string
 
+
+
 class Exporter:
     def __init__(self, tmpFolder=None):
         self.pages = []
@@ -111,17 +113,105 @@ class PPTXExporter(Exporter):
     def add_text(self, textFile, page_idx=0, text_size=11):
 
         with open(textFile, "r") as file:
-            text = file.read()
+            text = file.readlines()
 
+        line=text[0]
+        y = 1.0
         left = Inches(0)
-        width = Inches(10)
+        width = Inches(5)
         height = Inches(5.8)
-        top = Inches(1.5)
-
+        top = Inches(1)
         txBox = self.pages[page_idx].shapes.add_textbox(left, top, width, height)
 
-        txBox.text_frame.text = text
-        txBox.text_frame.paragraphs[0].font.size = Pt(text_size)
+
+        tableLines = []
+        tableStart = None
+        drawingTable = False
+        for line in text:
+            y += 0.19
+            if line.startswith("#"):
+                run = txBox.text_frame.paragraphs[0].add_run()
+                run.font.bold = True
+                
+                if line.startswith("###"):
+                    run.text =  line.split("### ")[1]
+                    run.font.size = Pt(text_size + 2)
+                    
+                if line.startswith("###"):
+                    run.text =  line.split("## ")[1]
+                    run.font.size = Pt(text_size + 4)
+
+                if line.startswith("###"):
+                    run.text =  line.split("# ")[1]
+                    run.font.size = Pt(text_size + 6)
+            elif line.startswith("|"):
+                tableLines.append(line)
+                # tableLines.append(line)
+                if drawingTable == False:
+                    tableStart = y 
+                    drawingTable = True
+
+                # Add blank spaces in case more text comes after the table
+                run = txBox.text_frame.paragraphs[0].add_run()
+                run.text =  "\n"
+                run.font.size = Pt(text_size+1)
+                run.font.bold = False
+            else:
+
+                run = txBox.text_frame.paragraphs[0].add_run()
+                run.text =  line
+                run.font.size = Pt(text_size)
+                run.font.bold = False
+
+        
+
+        if len(tableLines) > 0:
+
+            
+
+            header = tableLines[0]
+            import re
+            nCols = len(re.findall("[|]", header)) - 1
+            nRows = len(tableLines) - sum([l.startswith("|-") and l.endswith("-|\n") for l in tableLines])
+
+            #TODO, check for header marking
+            shape = self.pages[page_idx].shapes.add_table(nRows, nCols, \
+                                            Inches(0.8), 
+                                            Inches(tableStart),
+                                            Inches(5),
+                                            Inches( len(tableLines) * 0.25  ))
+            
+            tbl = shape.table
+            
+            ri = 0
+            for line in tableLines:
+                if line.startswith("|-") and ":|:" in line:
+                    continue
+
+                content = line.split("|")
+                ci = 0
+                for i in range(1, len(content)-1):
+                    if ri == 0:
+                        tbl.cell(ri,ci).fill.solid()
+                        tbl.cell(ri,ci).fill.fore_color.rgb = RGBColor(128, 128, 128)
+                    else:
+                        tbl.cell(ri,ci).fill.solid()
+                        tbl.cell(ri,ci).fill.fore_color.rgb = RGBColor(220, 220, 220)
+
+                    run = tbl.cell(ri, ci).text_frame.paragraphs[0].add_run()
+                    run.text =  str.strip(content[i])
+                    
+                    if ri == 0:
+                        run.font.size = Pt(text_size+3)
+                        run.font.bold = True
+                    else:
+                        run.font.size = Pt(text_size)
+                        run.font.bold = False
+
+                    ci += 1
+
+                ri += 1
+
 
 
 
@@ -132,7 +222,7 @@ class PPTXExporter(Exporter):
         return buf
     
     def as_dataframe(self, filename):
-        
+        self.presentation.save("test.pptx")
         self.presentation.save(self.tmpFolder + "/" + basename(filename) + ".pptx")
         
         
@@ -164,27 +254,3 @@ class PPTXExporter(Exporter):
         
         imgDf = imgDf.with_columns(pl.col('.ci').cast(pl.Int32))
         return imgDf
-    
-
-# def image_file_to_df(file_path):
-#     checksum = hashlib.md5(open(file_path,'rb').read()).hexdigest()
-
-#     output_str = []
-
-#     for fpath in file_path:
-#         with open(file_path, mode="rb") as f:
-#             fc = f.read()
-#             output_str.append([base64.b64encode(fc)])
-
-
-#     o = output_str[0][0]
-
-#     outs = o.decode('utf-8')
-#     imgDf = pd.DataFrame({
-#         "filename":[filename],
-#         "mimetype":[mimetype],
-#         "checksum":[checksum],
-#         ".content":[outs]
-#     })
-
-#     return imgDf

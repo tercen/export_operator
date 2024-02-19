@@ -2,11 +2,11 @@ from tercen.client import context as context
 from tercen.model.impl import SimpleRelation, CompositeRelation, RenameRelation, Workflow, ImportWorkflowTask
 from tercen.http.HttpClientService import decodeTSON
 
-
+from pathlib import Path
 from pptx import Presentation
 
 
-from PIL import Image
+
 
 import  base64, subprocess, string, random, os, shutil
 # import time
@@ -37,11 +37,14 @@ def get_simple_relation_id_list(obj):
 def get_plot_schemas(ctx, steps ):
     schemas = {}
     for stp in steps:
+
         if hasattr(stp, "computedRelation"):
             relationIds = get_simple_relation_id_list(stp.computedRelation)
             for i in range(0, len(relationIds)):
+                
                 schema = ctx.context.client.tableSchemaService.get(relationIds[i])
-                if any([c.name == ".content" for c in schema.columns]) and any([c.name == "mimetype" for c in schema.columns]):
+
+                if any([c.name == ".content" for c in schema.columns]):
                     schemas[stp.name] = schema
     
     return schemas
@@ -49,51 +52,76 @@ def random_string(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
 def table_to_file(ctx, schema, tmpFolder=None):
-    mimetypeTbl = decodeTSON(ctx.context.client.tableSchemaService.selectStream(schema.id, ["mimetype"], 0, -1))
-    ctt =ctx.context.client.tableSchemaService.selectStream(schema.id, [".content"], 0, -1)
+    for c in schema.columns:
+        if "mimetype" in c.name:
+            mimeColName = c.name
+
+    nameColName = None
+    for c in schema.columns:
+        if "filename" in c.name:
+            nameColName = c.name
 
     
-    bytesTbl = decodeTSON(ctt)
-    mimetype = mimetypeTbl["columns"][0]["values"][0]
+    mimetypeTbl = decodeTSON(ctx.context.client.tableSchemaService.selectStream(schema.id, [mimeColName], 0, -1))
+    ctt =ctx.context.client.tableSchemaService.selectStream(schema.id, [".content"], 0, -1)
+
+    if not nameColName is None:
+        filenameTbl = decodeTSON(ctx.context.client.tableSchemaService.selectStream(schema.id, [nameColName], 0, -1))
+        filenames = filenameTbl["columns"][0]["values"]
 
     if tmpFolder is None:
         tmpFolder = "/tmp/"  + random_string()
         os.makedirs(tmpFolder)
     
-    baseImgPath = tmpFolder + "/" + random_string()
+    schema.nRows
     
-    outImgPath = baseImgPath + ".png"
+    bytesTbls = decodeTSON(ctt)
+    mimetypes = mimetypeTbl["columns"][0]["values"]
+    
+    fileInfos = []
 
-    print(mimetype)
+    for i in range(0, schema.nRows):
+        mimetype = mimetypes[i]
+        filename = Path(filenames[i]).stem
 
-    if mimetype == "image/svg+xml":
-        saveImgPath = baseImgPath + ".svg"
-
-        with open(saveImgPath, "wb") as file:
-            file.write( base64.b64decode(bytesTbl["columns"][0]["values"][0])  )
+        
+        baseImgPath = tmpFolder + "/" + filename
+        
         
 
-        subprocess.call(["inkscape", "-z" ,saveImgPath, "-e", outImgPath])
+        print(mimetype)
 
-        im = Image.open(outImgPath)
-        return [outImgPath, im.size, mimetype]
-    
-    if mimetype == "image/png":
-        saveImgPath = baseImgPath + ".png"
+        if mimetype == "image/svg+xml":
+            saveImgPath = baseImgPath + ".svg"
 
-        with open(saveImgPath, "wb") as file:
-            file.write( base64.b64decode(bytesTbl["columns"][0]["values"][0])  )
+            with open(saveImgPath, "wb") as file:
+                file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i])  )
+            
+            outImgPath = filename + ".png"
+            subprocess.call(["inkscape", "-z" ,saveImgPath, "-e", outImgPath])
 
-        im = Image.open(saveImgPath)
-        return [saveImgPath, im.size, mimetype]
-    if mimetype == "text/markdown":
-        saveFilePath = baseImgPath + ".txt"
-        with open(saveFilePath, "wb") as file:
-            file.write(base64.b64decode(bytesTbl["columns"][0]["values"][0]))
+            # im = Image.open(outImgPath)
+            fileInfos.append([outImgPath, mimetype, filename])
+            # return [outImgPath, im.size, mimetype]
+        
+        if mimetype == "image/png":
+            saveImgPath = baseImgPath + ".png"
 
-        return [saveFilePath, None, mimetype]
+            with open(saveImgPath, "wb") as file:
+                file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i])  )
 
-    return None
+            fileInfos.append([saveImgPath, mimetype, filename])
+            # im = Image.open(saveImgPath)
+            # return [saveImgPath, im.size, mimetype]
+        if mimetype == "text/markdown":
+            saveFilePath = baseImgPath + ".txt"
+            with open(saveFilePath, "wb") as file:
+                file.write(base64.b64decode(bytesTbls["columns"][0]["values"][i]))
+
+            fileInfos.append([saveFilePath, mimetype, filename])
+            # return [saveFilePath,  mimetype]
+    return fileInfos
+    # return None
 
 
 
@@ -136,23 +164,32 @@ else:
 for stpName,schema in schemas.items():
     fileInfo = table_to_file(tercenCtx, schema,  tmpFolder=tmpFolder)
     
-    if fileInfo[2].startswith("image"):
-    # aspectRatio = imInfo[1][1]/imInfo[1][0]
-        expo.add_blank_page(stpName=stpName)
-        expo.add_image(fileInfo)
-        expo.add_title(stpName)
-        expo.add_footer()
+    for fi in fileInfo:
+        if fi[1].startswith("image"):
+        # aspectRatio = imInfo[1][1]/imInfo[1][0]
+            expo.add_blank_page(stpName=stpName)
+            expo.add_image(fi)
+            if fi[2] != "Tercen_Plot":
+                expo.add_title(stpName + " - " + fi[2])
+            else:
+                expo.add_title(stpName)
+            expo.add_footer()
 
-    if fileInfo[2].startswith("text"):
-        expo.add_blank_page(stpName=stpName)
-        expo.add_text(fileInfo[0])
-        expo.add_title(stpName)
-        expo.add_footer()
+        if fi[1].startswith("text"):
+            expo.add_blank_page(stpName=stpName)
+            
+
+            expo.add_text(fi[0])
+            if fi[2] != "Tercen_Plot":
+                expo.add_title(stpName + " - " + fi[2])
+            else:
+                expo.add_title(stpName)
+            expo.add_footer()
 
 
 
 imgDf = expo.as_dataframe( "/tmp/"  + workflow.id + "/" + workflow.name + "_Report")
 
 
-imgDf = tercenCtx.add_namespace(imgDf)
-tercenCtx.save(imgDf)
+# imgDf = tercenCtx.add_namespace(imgDf)
+# tercenCtx.save(imgDf)
