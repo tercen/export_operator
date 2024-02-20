@@ -91,7 +91,7 @@ def table_to_file(ctx, schema, tmpFolder=None):
                 file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i])  )
             
 
-            outImgPath = filename + ".emf"
+            outImgPath = tmpFolder + "/" + filename + ".emf"
             subprocess.call(["inkscape", "-z" ,saveImgPath, "-M", outImgPath])
 
             fileInfos.append([outImgPath, mimetype, filename])
@@ -110,6 +110,8 @@ def table_to_file(ctx, schema, tmpFolder=None):
 
             fileInfos.append([saveFilePath, mimetype, filename])
     return fileInfos
+
+
 
 
 tercenCtx = context.TercenContext()
