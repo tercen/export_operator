@@ -2,15 +2,16 @@ from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.util import Inches, Pt
 import datetime
-from io import BytesIO
 from hashlib import md5
 from base64 import b64encode
 
 import polars as pl
 from os.path import basename
 import subprocess
-import random, string
+import random, string, re
 
+
+from PIL import Image
 
 
 class Exporter:
@@ -36,9 +37,7 @@ class Exporter:
     def add_text(self, textFile, page_idx=0, text_size=11):
         pass
 
-    def get_bytes(self):
-        return None
-    
+   
     def as_dataframe(self):
         return None
 
@@ -102,13 +101,36 @@ class PPTXExporter(Exporter):
             page_idx = len(self.pages)-1
         
         # Slide is 10 x 7.5 in. (w x h)
+        im = Image.open(imgInfo[0])
+        width, height = im.size
+
+        aspectRatio = width / height
+
         top = Inches(0.75)
         left = Inches(0.5)
-        height = Inches(5.8)
-        #pic = 
-        self.pages[page_idx].shapes.add_picture(imgInfo[0], left, top, height=height)
+       
+        pg = self.pages[page_idx]
+        
+        pgImg = pg.shapes.add_picture(imgInfo[0], left, top)
 
- 
+        
+        heightRel = pgImg.height / self.presentation.slide_height
+        widthRel = pgImg.width / self.presentation.slide_width
+
+
+        if heightRel < 0.9 and widthRel < 0.9:
+            height = Inches(5.8)
+            self.pages[page_idx].shapes.add_picture(imgInfo[0], left, top, height=height)
+        else:
+            if widthRel > heightRel:
+                relChange = 0.9 / widthRel
+                pgImg.width = int(pgImg.width * relChange)
+                pgImg.height = int(pgImg.height * relChange)
+            else:
+                relChange = 0.9 / heightRel
+                pgImg.width = int(pgImg.width * relChange)
+                pgImg.height = int(pgImg.height * relChange)
+            
 
     def add_text(self, textFile, page_idx=0, text_size=11):
 
@@ -146,7 +168,7 @@ class PPTXExporter(Exporter):
                     run.font.size = Pt(text_size + 6)
             elif line.startswith("|"):
                 tableLines.append(line)
-                # tableLines.append(line)
+
                 if drawingTable == False:
                     tableStart = y 
                     drawingTable = True
@@ -166,11 +188,8 @@ class PPTXExporter(Exporter):
         
 
         if len(tableLines) > 0:
-
-            
-
             header = tableLines[0]
-            import re
+
             nCols = len(re.findall("[|]", header)) - 1
             nRows = len(tableLines) - sum([l.startswith("|-") and l.endswith("-|\n") for l in tableLines])
 
@@ -212,17 +231,8 @@ class PPTXExporter(Exporter):
 
                 ri += 1
 
-
-
-
-
-    def get_bytes(self):
-        buf = BytesIO()
-        self.presentation.save(buf)
-        return buf
-    
+   
     def as_dataframe(self, filename):
-        self.presentation.save("test.pptx")
         self.presentation.save(self.tmpFolder + "/" + basename(filename) + ".pptx")
         
         

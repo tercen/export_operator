@@ -1,12 +1,9 @@
 from tercen.client import context as context
-from tercen.model.impl import SimpleRelation, CompositeRelation, RenameRelation, Workflow, CubeQueryTask
+from tercen.model.impl import SimpleRelation, CompositeRelation, RenameRelation
 from tercen.http.HttpClientService import decodeTSON
 
 from pathlib import Path
-from pptx import Presentation
-
 import  base64, subprocess, string, random, os, shutil
-
 
 from exporter import PPTXExporter
 
@@ -48,6 +45,8 @@ def get_plot_schemas(ctx, steps ):
 def random_string(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
+
+# Save image/text file so the python-pptx can read it later
 def table_to_file(ctx, schema, tmpFolder=None):
     for c in schema.columns:
         if "mimetype" in c.name:
@@ -60,7 +59,7 @@ def table_to_file(ctx, schema, tmpFolder=None):
 
     
     mimetypeTbl = decodeTSON(ctx.context.client.tableSchemaService.selectStream(schema.id, [mimeColName], 0, -1))
-    ctt =ctx.context.client.tableSchemaService.selectStream(schema.id, [".content"], 0, -1)
+    ctt = ctx.context.client.tableSchemaService.selectStream(schema.id, [".content"], 0, -1)
 
     if not nameColName is None:
         filenameTbl = decodeTSON(ctx.context.client.tableSchemaService.selectStream(schema.id, [nameColName], 0, -1))
@@ -84,9 +83,6 @@ def table_to_file(ctx, schema, tmpFolder=None):
         
         baseImgPath = tmpFolder + "/" + filename
         
-        
-
-        print(mimetype)
 
         if mimetype == "image/svg+xml":
             saveImgPath = baseImgPath + ".svg"
@@ -94,16 +90,12 @@ def table_to_file(ctx, schema, tmpFolder=None):
             with open(saveImgPath, "wb") as file:
                 file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i])  )
             
-            # outImgPath = filename + ".png"
-            # subprocess.call(["inkscape", "-z" ,saveImgPath, "-e", outImgPath])
 
             outImgPath = filename + ".emf"
             subprocess.call(["inkscape", "-z" ,saveImgPath, "-M", outImgPath])
 
-            # im = Image.open(outImgPath)
             fileInfos.append([outImgPath, mimetype, filename])
-            # return [outImgPath, im.size, mimetype]
-        
+       
         if mimetype == "image/png":
             saveImgPath = baseImgPath + ".png"
 
@@ -111,27 +103,15 @@ def table_to_file(ctx, schema, tmpFolder=None):
                 file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i])  )
 
             fileInfos.append([saveImgPath, mimetype, filename])
-            # im = Image.open(saveImgPath)
-            # return [saveImgPath, im.size, mimetype]
         if mimetype == "text/markdown":
             saveFilePath = baseImgPath + ".txt"
             with open(saveFilePath, "wb") as file:
                 file.write(base64.b64decode(bytesTbls["columns"][0]["values"][i]))
 
             fileInfos.append([saveFilePath, mimetype, filename])
-            # return [saveFilePath,  mimetype]
     return fileInfos
-    # return None
 
 
-#SVG
-#http://127.0.0.1:5400/test/w/fb58e9a6f4fe82c64066df2065000e37/ds/a6ee6670-eece-49f2-9158-c0aad8a1a5b4
-# tercenCtx = context.TercenContext(workflowId="fb58e9a6f4fe82c64066df2065000e37",\
-                            # stepId="a6ee6670-eece-49f2-9158-c0aad8a1a5b4")
-
-#310ae60ad93ec799406fcc2404141831/ds/785e21c9-acd7-4967-a37a-2dff81ce3cf3
-# tercenCtx = context.TercenContext(workflowId="310ae60ad93ec799406fcc2404141831",\
-                            # stepId="785e21c9-acd7-4967-a37a-2dff81ce3cf3")
 tercenCtx = context.TercenContext()
 
 
@@ -176,7 +156,6 @@ for stpName,schema in schemas.items():
     for fi in fileInfo:
         
         if fi[1].startswith("image"):
-        # aspectRatio = imInfo[1][1]/imInfo[1][0]
             expo.add_blank_page(stpName=stpName)
             expo.add_image(fi)
             if fi[2] != "Tercen_Plot":
