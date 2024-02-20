@@ -86,7 +86,7 @@ def table_to_file(ctx, schema, tmpFolder=None):
         
         
 
-        # print(mimetype)
+        print(mimetype)
 
         if mimetype == "image/svg+xml":
             saveImgPath = baseImgPath + ".svg"
@@ -94,8 +94,11 @@ def table_to_file(ctx, schema, tmpFolder=None):
             with open(saveImgPath, "wb") as file:
                 file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i])  )
             
-            outImgPath = filename + ".png"
-            subprocess.call(["inkscape", "-z" ,saveImgPath, "-e", outImgPath])
+            # outImgPath = filename + ".png"
+            # subprocess.call(["inkscape", "-z" ,saveImgPath, "-e", outImgPath])
+
+            outImgPath = filename + ".emf"
+            subprocess.call(["inkscape", "-z" ,saveImgPath, "-M", outImgPath])
 
             # im = Image.open(outImgPath)
             fileInfos.append([outImgPath, mimetype, filename])
@@ -121,12 +124,17 @@ def table_to_file(ctx, schema, tmpFolder=None):
     # return None
 
 
-
+#SVG
+#http://127.0.0.1:5400/test/w/fb58e9a6f4fe82c64066df2065000e37/ds/a6ee6670-eece-49f2-9158-c0aad8a1a5b4
+# tercenCtx = context.TercenContext(workflowId="fb58e9a6f4fe82c64066df2065000e37",\
+                            # stepId="a6ee6670-eece-49f2-9158-c0aad8a1a5b4")
 
 #310ae60ad93ec799406fcc2404141831/ds/785e21c9-acd7-4967-a37a-2dff81ce3cf3
 # tercenCtx = context.TercenContext(workflowId="310ae60ad93ec799406fcc2404141831",\
                             # stepId="785e21c9-acd7-4967-a37a-2dff81ce3cf3")
 tercenCtx = context.TercenContext()
+
+
 
 outputFormat = tercenCtx.operator_property('OutputFormat', typeFn=str, default="PowerPoint (*.pptx)")
 
@@ -166,6 +174,7 @@ for stpName,schema in schemas.items():
     fileInfo = table_to_file(tercenCtx, schema,  tmpFolder=tmpFolder)
     
     for fi in fileInfo:
+        
         if fi[1].startswith("image"):
         # aspectRatio = imInfo[1][1]/imInfo[1][0]
             expo.add_blank_page(stpName=stpName)
