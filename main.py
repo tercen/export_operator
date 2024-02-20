@@ -6,7 +6,7 @@ from pathlib import Path
 import  base64, subprocess, string, random, os, shutil
 
 from exporter import PPTXExporter
-
+import tempfile
 
 def get_simple_relation_id_list(obj):
     idList = []
@@ -66,7 +66,7 @@ def table_to_file(ctx, schema, tmpFolder=None):
         filenames = filenameTbl["columns"][0]["values"]
 
     if tmpFolder is None:
-        tmpFolder = "/tmp/"  + random_string()
+        tmpFolder = tempfile.gettempdir()  + random_string()
         os.makedirs(tmpFolder)
     
     schema.nRows
@@ -138,7 +138,7 @@ else:
 
 
 
-tmpFolder = "/tmp/"  + workflow.id
+tmpFolder = tempfile.gettempdir()  + workflow.id
 if os.path.exists(tmpFolder):
     shutil.rmtree(tmpFolder)
 os.makedirs(tmpFolder )
@@ -179,7 +179,7 @@ for stpName,schema in schemas.items():
 
 
 
-imgDf = expo.as_dataframe( "/tmp/"  + workflow.id + "/" + workflow.name + "_Report")
+imgDf = expo.as_dataframe( tempfile.gettempdir()  + workflow.id + "/" + workflow.name + "_Report")
 
 
 imgDf = tercenCtx.add_namespace(imgDf)
