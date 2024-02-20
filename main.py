@@ -66,10 +66,13 @@ def table_to_file(ctx, schema, tmpFolder=None):
         filenames = filenameTbl["columns"][0]["values"]
 
     if tmpFolder is None:
-        tmpFolder = tempfile.gettempdir()  + random_string()
-        os.makedirs(tmpFolder)
+        tmpFolder = tempfile.gettempdir() + "/"  + random_string()
+        
+
+    shutil.rmtree(tmpFolder)
+    os.makedirs(tmpFolder )
     
-    schema.nRows
+    
     
     bytesTbls = decodeTSON(ctt)
     mimetypes = mimetypeTbl["columns"][0]["values"]
@@ -138,7 +141,7 @@ else:
 
 
 
-tmpFolder = tempfile.gettempdir()  + workflow.id
+tmpFolder = tempfile.gettempdir() + "/"  + workflow.id
 if os.path.exists(tmpFolder):
     shutil.rmtree(tmpFolder)
 os.makedirs(tmpFolder )
@@ -179,7 +182,7 @@ for stpName,schema in schemas.items():
 
 
 
-imgDf = expo.as_dataframe( tempfile.gettempdir()  + workflow.id + "/" + workflow.name + "_Report")
+imgDf = expo.as_dataframe( tempfile.gettempdir() + "/"   + workflow.id + "/" + workflow.name + "_Report")
 
 
 imgDf = tercenCtx.add_namespace(imgDf)
