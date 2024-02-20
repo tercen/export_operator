@@ -1,9 +1,8 @@
 FROM tercen/runtime-python39:0.1.0
 
 RUN apt-get update && apt-get install -y \
-    imagemagick \
-    inkscape \
-    libreoffice
+    inkscape=0.92.4 \
+    libreoffice=6.1.5.2
 
 COPY . /operator
 WORKDIR /operator
