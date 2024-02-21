@@ -233,6 +233,7 @@ class PPTXExporter(Exporter):
 
    
     def as_dataframe(self, filename):
+        # self.presentation.save("test.pptx")
         self.presentation.save(self.tmpFolder + "/" + basename(filename) + ".pptx")
         
         

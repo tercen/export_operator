@@ -95,7 +95,7 @@ def table_to_file(ctx, schema, tmpFolder=None):
             
 
             outImgPath = tmpFolder + "/" + filename + ".emf"
-            subprocess.call(["inkscape", "-z" ,saveImgPath, "-M", outImgPath])
+            subprocess.call(["inkscape", "-z" ,saveImgPath, "-o", outImgPath])
 
             fileInfos.append([outImgPath, mimetype, filename])
        
@@ -116,7 +116,8 @@ def table_to_file(ctx, schema, tmpFolder=None):
 
 
 
-
+#http://127.0.0.1:5400/test/w/fb58e9a6f4fe82c64066df20650d0794/ds/61358eb4-178d-49c0-b98c-26485b99c125
+# tercenCtx = context.TercenContext(workflowId="fb58e9a6f4fe82c64066df20650d0794", stepId="61358eb4-178d-49c0-b98c-26485b99c125")
 tercenCtx = context.TercenContext()
 
 
