@@ -960,6 +960,9 @@
        unitType="2" />
   </group>
   <group
+       id="threading"
+       numthreads="1" /> 
+  <group
      id="extensions"
      org.inkscape.output.pdf.cairorenderer.PDFversion="PDF-1.5"
      org.inkscape.input.svg.scale="auto"
