@@ -961,7 +961,7 @@
   </group>
   <group
        id="threading"
-       numthreads="0" /> 
+       numthreads="4" /> 
   <group
      id="extensions"
      org.inkscape.output.pdf.cairorenderer.PDFversion="PDF-1.5"

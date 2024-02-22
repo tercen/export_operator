@@ -1,8 +1,9 @@
 #FROM tercen/runtime-python39:0.2.2
 
-FROM debian:bookworm-slim
+#FROM debian:bookworm-slim
+FROM ubuntu:jammy
 
-RUN apt-get update && apt-get install --no-install-recommends -y build-essential \
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y build-essential \
 	ca-certificates \
 	sudo \
 	git \
@@ -50,8 +51,8 @@ RUN python3 -m pip install -r ./requirements.txt
 
 ENV TERCEN_SERVICE_URI https://tercen.com
 ENV HOME /home/root
-ENV OPENBLAS_NUM_THREADS="1"
-ENV MKL_NUM_THREADS="1"
+#ENV OPENBLAS_NUM_THREADS="1"
+#ENV MKL_NUM_THREADS="1"
 
 
 ENTRYPOINT [ "python3", "main.py"]
