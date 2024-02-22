@@ -45,11 +45,12 @@ COPY ./config/inkscape_preferences.xml /home/root/.config/inkscape/preferences.x
 WORKDIR /operator
 
 ENV PYTHONPATH "${PYTHONPATH}:~/.pyenv/versions/3.9.0/bin/python3"
+ENV PATH "${PATH}:~/.pyenv/versions/3.9.0/bin/python3"
 RUN python3 -m pip install -r ./requirements.txt
 
 ENV TERCEN_SERVICE_URI https://tercen.com
 ENV HOME /home/root
-
+ENV OPENBLAS_NUM_THREADS 1
 
 
 ENTRYPOINT [ "python3", "main.py"]
