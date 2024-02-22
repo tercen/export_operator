@@ -1,3 +1,6 @@
+import os
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
+
 from tercen.client import context as context
 from tercen.model.impl import SimpleRelation, CompositeRelation, RenameRelation
 from tercen.http.HttpClientService import decodeTSON
