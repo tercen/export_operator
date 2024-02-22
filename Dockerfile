@@ -36,7 +36,7 @@ RUN pip3 install wheel
 RUN apt-get install -y software-properties-common python3-launchpadlib
 
 RUN add-apt-repository ppa:inkscape.dev/stable-1.2
-RUN apt-get update && apt-get install -y inkscape
+RUN apt-get update && apt-get install -y inkscape libreoffice
 
 
 
