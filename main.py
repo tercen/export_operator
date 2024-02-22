@@ -45,7 +45,7 @@ def get_plot_schemas(ctx, steps ):
 def random_string(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
-
+#docker run --net=host export_op --taskId=
 # Save image/text file so the python-pptx can read it later
 def table_to_file(ctx, schema, tmpFolder=None):
     for c in schema.columns:
@@ -95,7 +95,8 @@ def table_to_file(ctx, schema, tmpFolder=None):
             
 
             outImgPath = tmpFolder + "/" + filename + ".emf"
-            subprocess.call(["inkscape", "-z" ,saveImgPath, "-o", outImgPath])
+            subprocess.call(["inkscape", saveImgPath, "--export-extension=org.inkscape.output.emf", "-o", outImgPath])
+            # subprocess.call(["inkscape", "-z" ,saveImgPath,  "-M", "test.emf"])
 
             fileInfos.append([outImgPath, mimetype, filename])
        
