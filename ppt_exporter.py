@@ -8,41 +8,13 @@ from base64 import b64encode
 import polars as pl
 from os.path import basename
 import subprocess
-import random, string, re
+
+import re
+
 
 
 from PIL import Image
-
-
-class Exporter:
-    def __init__(self, tmpFolder=None):
-        self.pages = []
-
-        if tmpFolder is None:
-            self.tmpFolder = "/tmp/" + ''.join(random.choice(string.ascii_letters) for _ in range(15))
-        else: 
-            self.tmpFolder = tmpFolder
-
-
-    def add_blank_page(self):
-        return -1
-    
-    def finish_page(self):
-        pass
-
-    # Image info is a list [imgPath, imgSize]
-    def add_image(self, imgInfo, page_idx=0):
-        pass
-
-    def add_title(self, title, page_idx=0):
-        pass
-
-    def add_text(self, textFile, page_idx=0, text_size=11):
-        pass
-
-   
-    def as_dataframe(self):
-        return None
+from exporter import Exporter
 
 
 class PPTXExporter(Exporter):
@@ -99,6 +71,9 @@ class PPTXExporter(Exporter):
 
         self.pages[page_idx].shapes.add_picture("img/tercen.png", left, top, height=height)
 
+    def finish_page(self):
+        pass
+
     def add_image(self, imgInfo, page_idx=None):
         if page_idx is None:
             page_idx = len(self.pages)-1
@@ -107,32 +82,28 @@ class PPTXExporter(Exporter):
         im = Image.open(imgInfo[0])
         width, height = im.size
 
-        aspectRatio = width / height
 
         top = Inches(0.75)
         left = Inches(0.5)
        
         pg = self.pages[page_idx]
         
-        pgImg = pg.shapes.add_picture(imgInfo[0], left, top)
+        pgImg = pg.shapes.add_picture(imgInfo[0], left, top, height=Inches(5.8))
 
         
         heightRel = pgImg.height / self.presentation.slide_height
         widthRel = pgImg.width / self.presentation.slide_width
 
 
-        if heightRel < 0.9 and widthRel < 0.9:
-            height = Inches(5.8)
-            self.pages[page_idx].shapes.add_picture(imgInfo[0], left, top, height=height)
-        else:
+        if heightRel > 0.8 or widthRel > 0.8:
             if widthRel > heightRel:
-                relChange = 0.9 / widthRel
-                pgImg.width = int(pgImg.width * relChange)
-                pgImg.height = int(pgImg.height * relChange)
+                relChange = 0.8 / widthRel
+                pgImg.width = int(pgImg.width * relChange * 0.8)
+                pgImg.height = int(pgImg.height * relChange * 0.8)
             else:
-                relChange = 0.9 / heightRel
-                pgImg.width = int(pgImg.width * relChange)
-                pgImg.height = int(pgImg.height * relChange)
+                relChange = 0.8 / heightRel
+                pgImg.width = int(pgImg.width * relChange * 0.8)
+                pgImg.height = int(pgImg.height * relChange * 0.8)
             
 
     def add_text(self, textFile, page_idx=0, text_size=11):

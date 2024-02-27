@@ -11,7 +11,8 @@ from tercen.http.HttpClientService import decodeTSON
 from pathlib import Path
 import  base64, subprocess, string, random, os, shutil
 
-from exporter import PPTXExporter
+from ppt_exporter import PPTXExporter
+from docx_exporter import DOCXExporter
 import tempfile
 
 def get_simple_relation_id_list(obj):
@@ -53,7 +54,7 @@ def random_string(size=6, chars=string.ascii_uppercase + string.digits):
 
 #docker run --net=host export_op --taskId=
 # Save image/text file so the python-pptx can read it later
-def table_to_file(ctx, schema, tmpFolder=None):
+def table_to_file(ctx, schema, tmpFolder=None, force_png=False):
     for c in schema.columns:
         if "mimetype" in c.name:
             mimeColName = c.name
@@ -99,10 +100,24 @@ def table_to_file(ctx, schema, tmpFolder=None):
             with open(saveImgPath, "wb") as file:
                 file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i])  )
             
+            if force_png == False:
+                outImgPath = tmpFolder + "/" + filename + ".emf"
+                # This is only for 1.1, not available in vscode...
+                #subprocess.call(["inkscape", saveImgPath, "--export-extension=org.inkscape.output.emf", "-o", outImgPath])
+                #ENTRYPOINT [ "/home/root/inkscape/inkscape-1.1.x/build/bin/inkscape"]
+#CMD [ "-export-extension", "org.inkscape.output.emf"]
+                subprocess.call(["/home/root/inkscape/inkscape-1.1.x/build/bin/inkscape", \
+                                 saveImgPath, "--export-extension=org.inkscape.output.emf", "-o", outImgPath])
+                # subprocess.call(["/home/root/inkscape/inkscape-1.1.x/build/bin/inkscape", \
+                                #  "--export-extension""-z" ,saveImgPath,  "-M", outImgPath])
+                #subprocess.call(["cp", saveImgPath,  "test.svg"])
 
-            outImgPath = tmpFolder + "/" + filename + ".emf"
-            subprocess.call(["inkscape", saveImgPath, "--export-extension=org.inkscape.output.emf", "-o", outImgPath])
-            # subprocess.call(["inkscape", "-z" ,saveImgPath,  "-M", "test.emf"])
+                
+            else:
+                outImgPath = tmpFolder + "/" + filename + ".png"
+                # This is only for 1.1, not available in vscode...
+                #subprocess.call(["inkscape", saveImgPath, "-o", outImgPath])
+                subprocess.call(["inkscape", "-z" ,saveImgPath, "-d", "150", "-e", outImgPath])
 
             fileInfos.append([outImgPath, mimetype, filename])
        
@@ -130,7 +145,8 @@ tercenCtx = context.TercenContext()
 
 
 outputFormat = tercenCtx.operator_property('OutputFormat', typeFn=str, default="PowerPoint (*.pptx)")
-
+# outputFormat = tercenCtx.operator_property('OutputFormat', typeFn=str, default="MS-Word (*.docx)")
+# outputFormat = "MS-Word (*.docx)"
 project = tercenCtx.context.client.projectService.get(tercenCtx.schema.projectId)
 objs = tercenCtx.context.client.persistentService.getDependentObjects(project.id)
 
@@ -156,37 +172,56 @@ os.makedirs(tmpFolder )
 
 schemas = get_plot_schemas(tercenCtx, workflow.steps)
 
+
+#
+is_docx = False
 if outputFormat == "PowerPoint (*.pptx)":
     expo = PPTXExporter(output="pptx", tmpFolder=tmpFolder)
 elif outputFormat == "PDF - Slides (*.pdf)":
     expo = PPTXExporter(output="pdf", tmpFolder=tmpFolder)
+elif outputFormat == "MS-Word (*.docx)":
+    expo = DOCXExporter(output="docx", tmpFolder=tmpFolder)
+    is_docx = True
 else:
     raise ValueError("unsupported format")
 
 for stpName,schema in schemas.items():
-    fileInfo = table_to_file(tercenCtx, schema,  tmpFolder=tmpFolder)
+    fileInfo = table_to_file(tercenCtx, schema,  tmpFolder=tmpFolder, force_png=is_docx)
     
     for fi in fileInfo:
         
         if fi[1].startswith("image"):
             expo.add_blank_page(stpName=stpName)
-            expo.add_image(fi)
+            if not is_docx:
+                expo.add_image(fi)
             if fi[2] != "Tercen_Plot":
                 expo.add_title(stpName + " - " + fi[2])
             else:
                 expo.add_title(stpName)
+
+            if is_docx:
+                expo.add_image(fi)
+
             expo.add_footer()
+
+            expo.finish_page()
 
         if fi[1].startswith("text"):
             expo.add_blank_page(stpName=stpName)
             
 
-            expo.add_text(fi[0])
+            if not is_docx:
+                expo.add_text(fi[0])
             if fi[2] != "Tercen_Plot":
                 expo.add_title(stpName + " - " + fi[2])
             else:
                 expo.add_title(stpName)
+            if is_docx:
+                expo.add_text(fi[0])
+
             expo.add_footer()
+
+            expo.finish_page()
 
 
 
