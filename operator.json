@@ -9,11 +9,13 @@
         {
             "kind": "EnumeratedProperty",
             "name": "OutputFormat",
-            "defaultValue": "PowerPoint (*.pptx)",
+            "defaultValue": "MS-PowerPoint (*.pptx)",
             "description": "Format in which the report is exported.",
             "values": [
-              "PowerPoint (*.pptx)",
-              "PDF - Slides (*.pdf)"
+              "MS-PowerPoint (*.pptx)",
+              "MS-Word (*.docx)",
+              "PDF - Slides (*.pdf)",
+              "PDF - A4 (*.pdf)"
             ]
         }
     ]

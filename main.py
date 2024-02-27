@@ -103,21 +103,16 @@ def table_to_file(ctx, schema, tmpFolder=None, force_png=False):
             if force_png == False:
                 outImgPath = tmpFolder + "/" + filename + ".emf"
                 # This is only for 1.1, not available in vscode...
-                #subprocess.call(["inkscape", saveImgPath, "--export-extension=org.inkscape.output.emf", "-o", outImgPath])
-                #ENTRYPOINT [ "/home/root/inkscape/inkscape-1.1.x/build/bin/inkscape"]
-#CMD [ "-export-extension", "org.inkscape.output.emf"]
                 subprocess.call(["/home/root/inkscape/inkscape-1.1.x/build/bin/inkscape", \
                                  saveImgPath, "--export-extension=org.inkscape.output.emf", "-o", outImgPath])
                 # subprocess.call(["/home/root/inkscape/inkscape-1.1.x/build/bin/inkscape", \
                                 #  "--export-extension""-z" ,saveImgPath,  "-M", outImgPath])
-                #subprocess.call(["cp", saveImgPath,  "test.svg"])
-
-                
             else:
                 outImgPath = tmpFolder + "/" + filename + ".png"
                 # This is only for 1.1, not available in vscode...
-                #subprocess.call(["inkscape", saveImgPath, "-o", outImgPath])
-                subprocess.call(["inkscape", "-z" ,saveImgPath, "-d", "150", "-e", outImgPath])
+                subprocess.call(["/home/root/inkscape/inkscape-1.1.x/build/bin/inkscape", \
+                                 saveImgPath, "-d", "150", "-o", outImgPath])
+                #subprocess.call(["inkscape", "-z" ,saveImgPath, "-d", "150", "-e", outImgPath])
 
             fileInfos.append([outImgPath, mimetype, filename])
        
@@ -145,8 +140,7 @@ tercenCtx = context.TercenContext()
 
 
 outputFormat = tercenCtx.operator_property('OutputFormat', typeFn=str, default="PowerPoint (*.pptx)")
-# outputFormat = tercenCtx.operator_property('OutputFormat', typeFn=str, default="MS-Word (*.docx)")
-# outputFormat = "MS-Word (*.docx)"
+
 project = tercenCtx.context.client.projectService.get(tercenCtx.schema.projectId)
 objs = tercenCtx.context.client.persistentService.getDependentObjects(project.id)
 
@@ -172,8 +166,6 @@ os.makedirs(tmpFolder )
 
 schemas = get_plot_schemas(tercenCtx, workflow.steps)
 
-
-#
 is_docx = False
 if outputFormat == "PowerPoint (*.pptx)":
     expo = PPTXExporter(output="pptx", tmpFolder=tmpFolder)
@@ -181,6 +173,9 @@ elif outputFormat == "PDF - Slides (*.pdf)":
     expo = PPTXExporter(output="pdf", tmpFolder=tmpFolder)
 elif outputFormat == "MS-Word (*.docx)":
     expo = DOCXExporter(output="docx", tmpFolder=tmpFolder)
+    is_docx = True
+elif outputFormat == "PDF - A4 (*.pdf)":
+    expo = DOCXExporter(output="pdf", tmpFolder=tmpFolder)
     is_docx = True
 else:
     raise ValueError("unsupported format")
