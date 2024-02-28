@@ -173,14 +173,14 @@ class DOCXExporter(Exporter):
    
     def as_dataframe(self, filename):
         # self.document.save("test.docx")
-        self.document.save(self.tmpFolder + "/" + basename(filename) + ".pptx")
+        self.document.save(self.tmpFolder + "/" + basename(filename) + ".docx")
         
         
 
         if self.output == "docx":
             outname = basename(filename) + ".docx"
             mimetype = "application/vnd.ms-word"
-            with open(self.tmpFolder + "/" + basename(filename) + ".pptx", "rb") as file:
+            with open(self.tmpFolder + "/" + basename(filename) + ".docx", "rb") as file:
                 fileBytes = file.read()
         else:
             outname = basename(filename) + ".pdf"
