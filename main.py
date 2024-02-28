@@ -11,8 +11,8 @@ from tercen.http.HttpClientService import decodeTSON
 from pathlib import Path
 import  base64, subprocess, string, random, os, shutil
 
-from ppt_exporter import PPTXExporter
-from docx_exporter import DOCXExporter
+from exporter.ppt_exporter import PPTXExporter
+from exporter.docx_exporter import DOCXExporter
 import tempfile
 
 def get_simple_relation_id_list(obj):
@@ -86,13 +86,45 @@ def table_to_file(ctx, schema, tmpFolder=None, force_png=False):
     
     fileInfos = []
 
-    for i in range(0, schema.nRows):
+    nRows = schema.nRows
+    multifile = False
+    if schema.nRows > 1:
+        # Merge all with same name
+        byteObjs = []
+        fnames = [[filenames[0]]]
+
+        currentFname = filenames[0]
+        b =  base64.b64decode(bytesTbls["columns"][0]["values"][0])
+        k = 1
+        while k < len(filenames):
+            if filenames[k] == currentFname:
+                b = b + base64.b64decode(bytesTbls["columns"][0]["values"][k])
+            else:
+                currentFname = filenames[k]
+                fnames.append([currentFname])
+                byteObjs.append([b])
+                b = base64.b64decode(bytesTbls["columns"][0]["values"][k])
+            k = k + 1
+
+        byteObjs.append([b])
+        nRows = len(fnames)
+        multifile = True
+
+        
+
+
+    for i in range(0, nRows):
         mimetype = mimetypes[i]
-        filename = Path(filenames[i]).stem
+        if multifile == True:
+            filename = Path(fnames[i][0]).stem
+        else:
+            filename = Path(filenames[i]).stem
 
         
         baseImgPath = tmpFolder + "/" + filename
-        
+        # if schema.nRows > 1:
+            # filename = "{}_{}".format(filename, i+1)
+
 
         if mimetype == "image/svg+xml":
             saveImgPath = baseImgPath + ".svg"
@@ -101,26 +133,32 @@ def table_to_file(ctx, schema, tmpFolder=None, force_png=False):
                 file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i])  )
             
             if force_png == False:
-                outImgPath = tmpFolder + "/" + filename + ".emf"
-                # This is only for 1.1, not available in vscode...
+                outImgPath = "{}/{}_{}.emf".format(tmpFolder, filename, i)
                 subprocess.call(["/home/root/inkscape/inkscape-1.1.x/build/bin/inkscape", \
                                  saveImgPath, "--export-extension=org.inkscape.output.emf", "-o", outImgPath])
-                # subprocess.call(["/home/root/inkscape/inkscape-1.1.x/build/bin/inkscape", \
-                                #  "--export-extension""-z" ,saveImgPath,  "-M", outImgPath])
+                
+                # subprocess.call(["inkscape", \
+                                #  saveImgPath,  "-M", outImgPath])
             else:
-                outImgPath = tmpFolder + "/" + filename + ".png"
-                # This is only for 1.1, not available in vscode...
+                #outImgPath = tmpFolder + "/" + filename + ".png"
+                outImgPath = "{}/{}_{}.png".format(tmpFolder, filename, i+1)
                 subprocess.call(["/home/root/inkscape/inkscape-1.1.x/build/bin/inkscape", \
                                  saveImgPath, "-d", "150", "-o", outImgPath])
-                #subprocess.call(["inkscape", "-z" ,saveImgPath, "-d", "150", "-e", outImgPath])
+                # subprocess.call(["inkscape", "-z" ,saveImgPath, "-d", "150", "-e", outImgPath])
 
             fileInfos.append([outImgPath, mimetype, filename])
        
         if mimetype == "image/png":
             saveImgPath = baseImgPath + ".png"
+            #saveImgPath = "{}_{}.png".format(baseImgPath,  i)
 
-            with open(saveImgPath, "wb") as file:
-                file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i])  )
+            if multifile == True:
+
+                with open(saveImgPath, "wb") as file:
+                    file.write( byteObjs[i][0] )
+            else:
+                with open(saveImgPath, "wb") as file:
+                    file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i] ) )
 
             fileInfos.append([saveImgPath, mimetype, filename])
         if mimetype == "text/markdown":
@@ -131,15 +169,16 @@ def table_to_file(ctx, schema, tmpFolder=None, force_png=False):
             fileInfos.append([saveFilePath, mimetype, filename])
     return fileInfos
 
-
-
-#http://127.0.0.1:5400/test/w/fb58e9a6f4fe82c64066df20650d0794/ds/61358eb4-178d-49c0-b98c-26485b99c125
-# tercenCtx = context.TercenContext(workflowId="fb58e9a6f4fe82c64066df20650d0794", stepId="61358eb4-178d-49c0-b98c-26485b99c125")
+#http://127.0.0.1:5400/test/w/fb58e9a6f4fe82c64066df206509f8af/ds/61358eb4-178d-49c0-b98c-26485b99c125
+# tercenCtx = context.TercenContext(workflowId="fb58e9a6f4fe82c64066df206509f8af", stepId="61358eb4-178d-49c0-b98c-26485b99c125")
+#http://127.0.0.1:5400/test/w/199554f886fb8d7e06e9568248043fb2/ds/ad15f974-150f-4cd1-bdf3-aa7be5f8f2d8
+# tercenCtx = context.TercenContext(workflowId="199554f886fb8d7e06e9568248043fb2", stepId="ad15f974-150f-4cd1-bdf3-aa7be5f8f2d8")
 tercenCtx = context.TercenContext()
 
 
 
 outputFormat = tercenCtx.operator_property('OutputFormat', typeFn=str, default="MS-PowerPoint (*.pptx)")
+# outputFormat = "MS-PowerPoint (*.pptx)"
 
 project = tercenCtx.context.client.projectService.get(tercenCtx.schema.projectId)
 objs = tercenCtx.context.client.persistentService.getDependentObjects(project.id)
@@ -186,36 +225,29 @@ for stpName,schema in schemas.items():
     for fi in fileInfo:
         
         if fi[1].startswith("image"):
-            expo.add_blank_page(stpName=stpName)
-            if not is_docx:
-                expo.add_image(fi)
+            expo.add_blank_page()
+
             if fi[2] != "Tercen_Plot":
                 expo.add_title(stpName + " - " + fi[2])
             else:
                 expo.add_title(stpName)
 
-            if is_docx:
-                expo.add_image(fi)
-
+            expo.add_image(fi)
             expo.add_footer()
 
             expo.finish_page()
 
         if fi[1].startswith("text"):
-            expo.add_blank_page(stpName=stpName)
-            
+            expo.add_blank_page()
 
-            if not is_docx:
-                expo.add_text(fi[0])
             if fi[2] != "Tercen_Plot":
                 expo.add_title(stpName + " - " + fi[2])
             else:
                 expo.add_title(stpName)
-            if is_docx:
-                expo.add_text(fi[0])
+            
+            expo.add_text(fi[0])
 
             expo.add_footer()
-
             expo.finish_page()
 
 

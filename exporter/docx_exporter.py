@@ -1,5 +1,4 @@
 from docx import Document
-# from docx.dml.color import RGBColor
 from docx.shared import Inches, Pt
 from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -14,10 +13,10 @@ import subprocess
 
 import re
 
-from PIL import Image
-from exporter import Exporter
 
-#TODO Might need to track paragraphs and pages
+from exporter.exporter import Exporter
+
+
 class DOCXExporter(Exporter):
     def __init__(self, output="docx", tmpFolder=None):
         super().__init__(tmpFolder=tmpFolder)
@@ -28,14 +27,8 @@ class DOCXExporter(Exporter):
     def finish_page(self):
         self.document.add_page_break()
 
-    def add_blank_page(self, stpName=None):
-        pass
-        # blank_slide_layout = self.document.slide_layouts[6]
-        # if self.firstPage == True:
-        #     self.firstPage = False
-        # else:
-        #     self.pages.append(self.document.add_page_break())
-
+    def add_blank_page(self):
+        # NO need for new pages, only add the breaks when done with "page" content
         return len(self.pages)
     
     def add_title(self, title, page_idx=None):
@@ -53,25 +46,17 @@ class DOCXExporter(Exporter):
         if page_idx is None:
             page_idx = len(self.pages)-1
         
-        # # Slide is 8.3 x 11.7 in. (w x h)
-        im = Image.open(imgInfo[0])
-        width, height = im.size
-
-
-        pg = self.document.add_paragraph().add_run()
         
+        pg = self.document.add_paragraph().add_run()
+       
 
         pgImg = pg.add_picture(imgInfo[0],  width=Inches(5.8))
 
         
         heightRel = pgImg.height / self.document.sections[0].page_height
         widthRel = pgImg.width / self.document.sections[0].page_width
-        # pg = pg.clear()
-        
-
+       
         if heightRel >= 0.8 or widthRel >= 0.8:
-        #     pg.add_picture(imgInfo[0], width=Inches(5.8))
-        # else:
             if widthRel > heightRel:
                 relChange = 0.8 / widthRel
                 pgImg.width = int(pgImg.width * relChange * 0.8)
@@ -117,14 +102,9 @@ class DOCXExporter(Exporter):
 
         line=text[0]
         y = 1.0
-        left = Inches(0)
-        width = Inches(5)
-        height = Inches(5.8)
-        top = Inches(1)
 
 
         tableLines = []
-        tableStart = None
         drawingTable = False
         for line in text:
             y += 0.19
@@ -172,7 +152,7 @@ class DOCXExporter(Exporter):
 
    
     def as_dataframe(self, filename):
-        # self.document.save("test.docx")
+        self.document.save("test.docx")
         self.document.save(self.tmpFolder + "/" + basename(filename) + ".docx")
         
         

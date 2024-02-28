@@ -10,11 +10,7 @@ from os.path import basename
 import subprocess
 
 import re
-
-
-
-from PIL import Image
-from exporter import Exporter
+from exporter.exporter import Exporter
 
 
 class PPTXExporter(Exporter):
@@ -23,7 +19,7 @@ class PPTXExporter(Exporter):
         self.output = output
         self.presentation = Presentation()
 
-    def add_blank_page(self, stpName=None):
+    def add_blank_page(self):
         blank_slide_layout = self.presentation.slide_layouts[6]
         self.pages.append(self.presentation.slides.add_slide(blank_slide_layout))
 
@@ -33,9 +29,9 @@ class PPTXExporter(Exporter):
         if page_idx == None:
             page_idx = len(self.pages)-1
 
+        text_size = 16
         left = Inches(0)
         width = Inches(10)
-        text_size = 16
         height = Inches(2)
         top = Inches(0.25)
         
@@ -50,7 +46,7 @@ class PPTXExporter(Exporter):
         if page_idx == None:
             page_idx = len(self.pages)-1
 
-        now = datetime.datetime.now().strftime("%H:%M:%S --- %d, %B %Y")
+        now = datetime.datetime.now().strftime("%H:%M --- %d, %B %Y")
 
         text_size = 10
         left = Inches(0)
@@ -79,10 +75,6 @@ class PPTXExporter(Exporter):
             page_idx = len(self.pages)-1
         
         # Slide is 10 x 7.5 in. (w x h)
-        im = Image.open(imgInfo[0])
-        width, height = im.size
-
-
         top = Inches(0.75)
         left = Inches(0.5)
        
@@ -90,7 +82,7 @@ class PPTXExporter(Exporter):
         
         pgImg = pg.shapes.add_picture(imgInfo[0], left, top, height=Inches(5.8))
 
-        
+        # Fit image size to slide        
         heightRel = pgImg.height / self.presentation.slide_height
         widthRel = pgImg.width / self.presentation.slide_width
 
