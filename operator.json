@@ -1,7 +1,7 @@
 {
-    "name": "Export Operator",
-    "description": "Export workflow report in different file formats.",
-    "tags": ["workflow", "plot", "report"],
+    "name": "Export Report",
+    "description": "Export a workflow report in different file formats.",
+    "tags": ["export", "reporting", "workflow"],
     "authors": ["tercen"],
     "urls": ["https://github.com/tercen/export_operator"],
     "container":"tercen/export_operator:0.2.0",
