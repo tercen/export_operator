@@ -172,7 +172,7 @@ class DOCXExporter(Exporter):
 
    
     def as_dataframe(self, filename):
-        self.document.save("test.docx")
+        # self.document.save("test.docx")
         self.document.save(self.tmpFolder + "/" + basename(filename) + ".pptx")
         
         

@@ -139,7 +139,7 @@ tercenCtx = context.TercenContext()
 
 
 
-outputFormat = tercenCtx.operator_property('OutputFormat', typeFn=str, default="PowerPoint (*.pptx)")
+outputFormat = tercenCtx.operator_property('OutputFormat', typeFn=str, default="MS-PowerPoint (*.pptx)")
 
 project = tercenCtx.context.client.projectService.get(tercenCtx.schema.projectId)
 objs = tercenCtx.context.client.persistentService.getDependentObjects(project.id)
@@ -167,7 +167,7 @@ os.makedirs(tmpFolder )
 schemas = get_plot_schemas(tercenCtx, workflow.steps)
 
 is_docx = False
-if outputFormat == "PowerPoint (*.pptx)":
+if outputFormat == "MS-PowerPoint (*.pptx)":
     expo = PPTXExporter(output="pptx", tmpFolder=tmpFolder)
 elif outputFormat == "PDF - Slides (*.pdf)":
     expo = PPTXExporter(output="pdf", tmpFolder=tmpFolder)

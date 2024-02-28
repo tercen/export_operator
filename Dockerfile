@@ -32,6 +32,7 @@ RUN wget https://www.python.org/ftp/python/3.9.17/Python-3.9.17.tar.xz && \
 
 RUN pip3 install wheel
 
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y libreoffice
 
 # Extra libs for compiling Inkscape
 RUN apt-get install -y software-properties-common python3-launchpadlib cmake \
