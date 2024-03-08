@@ -177,7 +177,7 @@ def table_to_file(ctx, schema, tmpFolder=None, force_png=False, svgOptimize="Bit
             fileInfos.append([saveFilePath, mimetype, filename])
     return fileInfos
 
-#http://127.0.0.1:5400/test/w/fea5edf39e43bb91ac6121c5a7030364/ds/61358eb4-178d-49c0-b98c-26485b99c125
+#http://127.0.0.1:5400/test/w/fea5edf39e43bb91ac6121c5a7030364/ds/61358eb4-178d-49c0-b98c-26485b99c125/crosstab
 # tercenCtx = context.TercenContext(workflowId="fea5edf39e43bb91ac6121c5a7030364", stepId="61358eb4-178d-49c0-b98c-26485b99c125")
 #http://127.0.0.1:5400/test/w/fea5edf39e43bb91ac6121c5a7030364/ds/61358eb4-178d-49c0-b98c-26485b99c125
 # tercenCtx = context.TercenContext(workflowId="199554f886fb8d7e06e9568248043fb2", stepId="ad15f974-150f-4cd1-bdf3-aa7be5f8f2d8")

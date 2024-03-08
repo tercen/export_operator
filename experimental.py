@@ -53,7 +53,7 @@ def get_circle_children(node):
 def optimize_svg(filepath, mode="bitmap auto"):
     if mode is None:
         mode = "none"
-        
+
     mode = mode.lower()
     tree = ET.parse(filepath)
     docRoot = tree.getroot()
@@ -73,8 +73,8 @@ def optimize_svg(filepath, mode="bitmap auto"):
     intermediateFile1 = filepath.replace(".svg", "_clean.svg")
 
     # ... and save an image without them
-    subprocess.call(["/home/root/inkscape/inkscape-1.3.2/build/bin/inkscape", filepath,\
-                                    "--actions=select-by-element:circle;delete-selection;export-area-drawing;export-filename:{};export-do".format(intermediateFile1)])
+    print(subprocess.check_output(["/home/root/inkscape/inkscape-1.3.2/build/bin/inkscape", filepath,\
+                                    "--actions=select-by-element:circle;delete-selection;export-area-drawing;export-filename:{};export-do".format(intermediateFile1)]))
 
     tree = ET.parse(intermediateFile1)
     docRoot = tree.getroot()
@@ -190,3 +190,5 @@ def optimize_svg(filepath, mode="bitmap auto"):
     
     
     return outFile
+
+
