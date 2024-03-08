@@ -13,6 +13,7 @@ import  base64, subprocess, string, random, os, shutil
 
 from exporter.ppt_exporter import PPTXExporter
 from exporter.docx_exporter import DOCXExporter
+from experimental import optimize_svg
 import tempfile
 
 def get_simple_relation_id_list(obj):
@@ -52,9 +53,9 @@ def get_plot_schemas(ctx, steps ):
 def random_string(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
-#docker run --net=host export_op --taskId=
+#docker run --rm -v tmp:/out/ --net=host export_op --taskId=
 # Save image/text file so the python-pptx can read it later
-def table_to_file(ctx, schema, tmpFolder=None, force_png=False):
+def table_to_file(ctx, schema, tmpFolder=None, force_png=False, svgOptimize="Bitmap Auto"):
     for c in schema.columns:
         if "mimetype" in c.name:
             mimeColName = c.name
@@ -129,31 +130,38 @@ def table_to_file(ctx, schema, tmpFolder=None, force_png=False):
         if mimetype == "image/svg+xml":
             saveImgPath = baseImgPath + ".svg"
 
-            with open(saveImgPath, "wb") as file:
-                file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i])  )
+            
+            if multifile == True:
+                with open(saveImgPath, "wb") as file:
+                    file.write( byteObjs[i][0] )
+            else:
+                with open(saveImgPath, "wb") as file:
+                    file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i] ) )
+
+            # with open(saveImgPath, "wb") as file:
+                # file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i])  )
             
             if force_png == False:
+                saveImgPath = optimize_svg(saveImgPath, mode=svgOptimize)
                 outImgPath = "{}/{}_{}.emf".format(tmpFolder, filename, i)
-                subprocess.call(["/home/root/inkscape/inkscape-1.1.x/build/bin/inkscape", \
-                                 saveImgPath, "--export-extension=org.inkscape.output.emf", "-o", outImgPath])
-                
-                # subprocess.call(["inkscape", \
-                                #  saveImgPath,  "-M", outImgPath])
+                # subprocess.call(["/home/root/inkscape/inkscape-1.1.x/build/bin/inkscape", \
+                                #  saveImgPath, "--export-extension=org.inkscape.output.emf", "-o", outImgPath])
+                subprocess.call(["/home/root/inkscape/inkscape-1.3.2/build/bin/inkscape", \
+                                 saveImgPath, "-o", outImgPath])
             else:
-                #outImgPath = tmpFolder + "/" + filename + ".png"
-                outImgPath = "{}/{}_{}.png".format(tmpFolder, filename, i+1)
-                subprocess.call(["/home/root/inkscape/inkscape-1.1.x/build/bin/inkscape", \
+                outImgPath = tmpFolder + "/" + filename + ".png"
+                
+                # subprocess.call(["/home/root/inkscape/inkscape-1.1.x/build/bin/inkscape", \
+                                #  saveImgPath, "-d", "150", "-o", outImgPath])
+                subprocess.call(["/home/root/inkscape/inkscape-1.3.2/build/bin/inkscape", \
                                  saveImgPath, "-d", "150", "-o", outImgPath])
-                # subprocess.call(["inkscape", "-z" ,saveImgPath, "-d", "150", "-e", outImgPath])
 
             fileInfos.append([outImgPath, mimetype, filename])
        
         if mimetype == "image/png":
             saveImgPath = baseImgPath + ".png"
-            #saveImgPath = "{}_{}.png".format(baseImgPath,  i)
 
             if multifile == True:
-
                 with open(saveImgPath, "wb") as file:
                     file.write( byteObjs[i][0] )
             else:
@@ -169,15 +177,17 @@ def table_to_file(ctx, schema, tmpFolder=None, force_png=False):
             fileInfos.append([saveFilePath, mimetype, filename])
     return fileInfos
 
-#http://127.0.0.1:5400/test/w/fb58e9a6f4fe82c64066df206509f8af/ds/61358eb4-178d-49c0-b98c-26485b99c125
-# tercenCtx = context.TercenContext(workflowId="fb58e9a6f4fe82c64066df206509f8af", stepId="61358eb4-178d-49c0-b98c-26485b99c125")
-#http://127.0.0.1:5400/test/w/199554f886fb8d7e06e9568248043fb2/ds/ad15f974-150f-4cd1-bdf3-aa7be5f8f2d8
+#http://127.0.0.1:5400/test/w/fea5edf39e43bb91ac6121c5a7030364/ds/61358eb4-178d-49c0-b98c-26485b99c125
+# tercenCtx = context.TercenContext(workflowId="fea5edf39e43bb91ac6121c5a7030364", stepId="61358eb4-178d-49c0-b98c-26485b99c125")
+#http://127.0.0.1:5400/test/w/fea5edf39e43bb91ac6121c5a7030364/ds/61358eb4-178d-49c0-b98c-26485b99c125
 # tercenCtx = context.TercenContext(workflowId="199554f886fb8d7e06e9568248043fb2", stepId="ad15f974-150f-4cd1-bdf3-aa7be5f8f2d8")
 tercenCtx = context.TercenContext()
 
 
 
+
 outputFormat = tercenCtx.operator_property('OutputFormat', typeFn=str, default="MS-PowerPoint (*.pptx)")
+svgOptimize = tercenCtx.operator_property('SVG Optimization', typeFn=str, default="Bitmap Auto")
 # outputFormat = "MS-PowerPoint (*.pptx)"
 
 project = tercenCtx.context.client.projectService.get(tercenCtx.schema.projectId)
@@ -220,7 +230,7 @@ else:
     raise ValueError("unsupported format")
 
 for stpName,schema in schemas.items():
-    fileInfo = table_to_file(tercenCtx, schema,  tmpFolder=tmpFolder, force_png=is_docx)
+    fileInfo = table_to_file(tercenCtx, schema,  tmpFolder=tmpFolder, force_png=is_docx, svgOptimize=svgOptimize)
     
     for fi in fileInfo:
         

@@ -17,6 +17,19 @@
               "PDF - Slides (*.pdf)",
               "PDF - A4 (*.pdf)"
             ]
+        },
+        {
+            "kind": "EnumeratedProperty",
+            "name": "SVG Optimization",
+            "defaultValue": "Bitmap Auto",
+            "description": "SVG plot simplification to reduce the quantity of individual scatter plot points.",
+            "values": [
+              "None",
+              "Bitmap",
+              "Bitmap Auto",
+              "Path"
+              
+            ]
         }
     ]
 }
