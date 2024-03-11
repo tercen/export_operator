@@ -151,7 +151,7 @@ def optimize_svg(filepath, mode="bitmap auto"):
 
             attribDict = {"id":key,\
                 "class":"class_{}".format(key),\
-                "style":circleGroup[0].attrib["style"], \
+                "style":circleGroup[0].attrib["style"] + ";fill:#ff000000;", \
                 "d":dString}
             circleGroupElement.attrib = attribDict
 
