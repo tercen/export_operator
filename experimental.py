@@ -39,28 +39,28 @@ def flatten(vec):
     
     return out
 
-def get_circle_children(node):
+def get_children(node, type="circle"):
     children = []
-    if "circle" in node.tag:
+    if type in node.tag:
         return node
     else:
         for i in range(0, len(node)):
-            children.append(get_circle_children(node[i]))
+            children.append(get_children(node[i], type=type))
         
     return children
 
 
 def optimize_svg(filepath, mode="bitmap auto"):
-    if mode is None:
-        mode = "none"
+    # if mode is None:
+    #     mode = "none"
 
-    mode = mode.lower()
+    # mode.lower()
     tree = ET.parse(filepath)
     docRoot = tree.getroot()
 
     # STEP 1. Convert individual shapes to single path
     # Get all circles ...
-    circles = flatten(get_circle_children(docRoot))
+    circles = flatten(get_children(docRoot, type="circle"))
 
     if circles is None or len(circles) == 0:
         return filepath
@@ -73,13 +73,26 @@ def optimize_svg(filepath, mode="bitmap auto"):
     intermediateFile1 = filepath.replace(".svg", "_clean.svg")
 
     # ... and save an image without them
-    print(subprocess.check_output(["/home/root/inkscape/inkscape-1.3.2/build/bin/inkscape", filepath,\
-                                    "--actions=select-by-element:circle;delete-selection;export-area-drawing;export-filename:{};export-do".format(intermediateFile1)]))
+    subprocess.check_output(["/home/root/inkscape/inkscape-1.3.2/build/bin/inkscape", filepath,\
+                                    "--actions=select-by-element:circle;delete-selection;export-area-drawing;export-filename:{};export-do".format(intermediateFile1)])
 
     tree = ET.parse(intermediateFile1)
     docRoot = tree.getroot()
 
     keysBaseDict = {}
+
+    # Rectangles without fill will be exported as black, so we fix that
+    rects = flatten(get_children(docRoot, type="rect"))
+
+    for rect in rects:
+        if "style" in rect.attrib.keys():
+            style = rect.attrib["style"]
+
+            
+            if not "fill" in style:
+                print("ADDING FILL STYLE")
+                style += ";fill:none"
+                rect.attrib["style"] = style
 
     # Group circles by color and diameter
     for cEl in circles:
@@ -131,7 +144,7 @@ def optimize_svg(filepath, mode="bitmap auto"):
                     prevX = circleInfo["x"]
                     prevY = circleInfo["y"]
                     if dString == "":
-                        dString = dString + "M {:.02},{:.02} A {:.02},{:.02} 0 0 1 {:.02},{:.02} {:.02},{:.02} 0 0 1 {:.02},{:.02} {:.02},{:.02} 0 0 1 {:.02},{:.02} {:.02},{:.02} 0 0 1 {:.02},{:.02} Z ".format(
+                        dString = dString + "M {:.04},{:.04} A {:.04},{:.04} 0 0 1 {:.04},{:.04} {:.04},{:.04} 0 0 1 {:.04},{:.04} {:.04},{:.04} 0 0 1 {:.04},{:.04} {:.04},{:.04} 0 0 1 {:.04},{:.04} Z ".format(
                             mX + radius,mY, radius, radius,\
                             mX, mY + radius, radius, radius,\
                             mX - radius, mY, radius, radius,\
@@ -140,7 +153,7 @@ def optimize_svg(filepath, mode="bitmap auto"):
                             
                         )
                     else:
-                        dString = dString + "m {:.02},{:.02} a {:.02},{:.02} 0 0 1 {:.02},{:.02} {:.02},{:.02} 0 0 1 {:.02},{:.02} {:.02},{:.02} 0 0 1 {:.02},{:.02} {:.02},{:.02} 0 0 1 {:.02},{:.02} z ".format(
+                        dString = dString + "m {:.04},{:.04} a {:.04},{:.04} 0 0 1 {:.04},{:.04} {:.04},{:.04} 0 0 1 {:.04},{:.04} {:.04},{:.04} 0 0 1 {:.04},{:.04} {:.04},{:.04} 0 0 1 {:.04},{:.04} z ".format(
                             mX, mY, radius, radius,\
                             -radius, radius, radius, radius,\
                             -radius, -radius, radius, radius,\
@@ -151,7 +164,7 @@ def optimize_svg(filepath, mode="bitmap auto"):
 
             attribDict = {"id":key,\
                 "class":"class_{}".format(key),\
-                "style":circleGroup[0].attrib["style"] + ";fill:#ff000000;", \
+                "style":circleGroup[0].attrib["style"], \
                 "d":dString}
             circleGroupElement.attrib = attribDict
 
@@ -163,16 +176,19 @@ def optimize_svg(filepath, mode="bitmap auto"):
     
 
     selection = ""
+    print("Mode is {}".format(mode))
+
+    mode = "bitmap"
     if mode=="bitmap":
         for key, val in keysBaseDict.items():
             # Select circles in group -: Make a bitmap copy -> select circles again -> delete them
             selection += "select-by-id:{};selection-make-bitmap-copy;select-clear;select-by-id:{};delete-selection;".format(key,key)
+        
 
-
-        actionCmd = "--actions={}export-filename:{};export-plain-svg;export-area-drawing;export-do;file-close".format(selection, outFile)
+        actionCmd = "--actions={};export-filename:{};export-area-drawing;export-do;file-close".format(selection, outFile)
         subprocess.call(["/home/root/inkscape/inkscape-1.3.2/build/bin/inkscape", intermediateFile2,  \
                                     "--batch-process", actionCmd ])
-        
+        print("Exported {}".format(outFile))
     if mode=="simplify":
         for key, val in keysBaseDict.items():
             # Select circles in group -: Make a bitmap copy -> select circles again -> delete them
@@ -192,3 +208,51 @@ def optimize_svg(filepath, mode="bitmap auto"):
     return outFile
 
 
+# #TODO MAKE THIS INTO the function!
+# subprocess.call(["cp", "/out/Tercen_Plot.svg", "/out/Tercen_Plot_2.svg"])
+# optimize_svg("/out/Tercen_Plot_2.svg", mode="bitmap auto")
+# subprocess.call(["rm", "-rf","/out/test/"])
+# subprocess.call(["mkdir", "/out/test/"])
+# subprocess.call(["cp", "/out/test.pptx", "/out/test/test.zip"])
+# subprocess.call(["unzip", "/out/test/test.zip", "-d", "/out/test/"])
+# subprocess.call(["rm", "/out/test/test.zip"])
+# subprocess.call(["cp", "/out/Tercen_Plot_2_path_optimized.svg", "/out/test/ppt/media/image5.svg"])
+# subprocess.call(["/home/root/inkscape/inkscape-1.3.2/build/bin/inkscape", "/out/Tercen_Plot_2_path_optimized.svg",  \
+#                                     "-o", "/out/image5_2.wmf" ])
+# # subprocess.call(["rm", "/out/test/ppt/media/image5.wmf"])
+# # subprocess.call(["rm", "/out/test/ppt/slides/_rels/slide6.xml.rels"])
+
+# with open("/out/test/ppt/slides/_rels/slide5.xml.rels", "r") as file:
+#     lines = file.readlines()
+
+
+# txt_out = ""
+# for line in lines:
+#     if "image5.png" in line:
+#         print("CHANGING!")
+#         txt_out += line.replace("image5.png", "image5.svg")
+#     else:
+#         txt_out += line
+
+
+# with open("/out/test/ppt/slides/_rels/slide5.xml.rels", "w") as file:
+#     file.write(txt_out)
+#     print(txt_out)
+
+# import os
+# wd = os.getcwd()
+# os.chdir("/out/test/")
+# subprocess.call(["zip", "-D","-r","test_out.zip", "."])
+# os.chdir(wd)
+# subprocess.call(["mv", "/out/test/test_out.zip", "/out/test_out.pptx"])
+
+
+
+
+
+
+
+# optimize_svg("/out/Tercen_Plot_2.svg", mode="bitmap")
+
+# subprocess.call(["/home/root/inkscape/inkscape-1.3.2/build/bin/inkscape", \
+#                                  "/out/Tercen_Plot_2_path_optimized.svg", "-o", "/out/Tercen_Plot_2.emf"])

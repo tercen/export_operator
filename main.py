@@ -1,4 +1,4 @@
-import os
+import os, sys
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
@@ -65,7 +65,8 @@ def table_to_file(ctx, schema, tmpFolder=None, force_png=False, svgOptimize="Bit
         if "filename" in c.name:
             nameColName = c.name
 
-    
+    # TODO Update API call to select file content
+    #fileContent = ctx.context.client.tableSchemaService.selectFileContentStream(schema.id, filenames[0])
     mimetypeTbl = decodeTSON(ctx.context.client.tableSchemaService.selectStream(schema.id, [mimeColName], 0, -1))
     ctt = ctx.context.client.tableSchemaService.selectStream(schema.id, [".content"], 0, -1)
 
@@ -73,14 +74,12 @@ def table_to_file(ctx, schema, tmpFolder=None, force_png=False, svgOptimize="Bit
         filenameTbl = decodeTSON(ctx.context.client.tableSchemaService.selectStream(schema.id, [nameColName], 0, -1))
         filenames = filenameTbl["columns"][0]["values"]
 
+    
+
     if tmpFolder is None:
         tmpFolder = tempfile.gettempdir() + "/"  + random_string()
-        
-
-    shutil.rmtree(tmpFolder)
-    os.makedirs(tmpFolder )
-    
-    
+        shutil.rmtree(tmpFolder)
+        os.makedirs(tmpFolder )
     
     bytesTbls = decodeTSON(ctt)
     mimetypes = mimetypeTbl["columns"][0]["values"]
@@ -123,8 +122,6 @@ def table_to_file(ctx, schema, tmpFolder=None, force_png=False, svgOptimize="Bit
 
         
         baseImgPath = tmpFolder + "/" + filename
-        # if schema.nRows > 1:
-            # filename = "{}_{}".format(filename, i+1)
 
 
         if mimetype == "image/svg+xml":
@@ -138,21 +135,18 @@ def table_to_file(ctx, schema, tmpFolder=None, force_png=False, svgOptimize="Bit
                 with open(saveImgPath, "wb") as file:
                     file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i] ) )
 
-            # with open(saveImgPath, "wb") as file:
-                # file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i])  )
+
             
             if force_png == False:
                 saveImgPath = optimize_svg(saveImgPath, mode=svgOptimize)
-                outImgPath = "{}/{}_{}.emf".format(tmpFolder, filename, i)
-                # subprocess.call(["/home/root/inkscape/inkscape-1.1.x/build/bin/inkscape", \
-                                #  saveImgPath, "--export-extension=org.inkscape.output.emf", "-o", outImgPath])
+                outImgPath =  saveImgPath.replace(".svg", ".wmf")  #"{}/{}_{}.png".format(tmpFolder, filename, i)
+
+
                 subprocess.call(["/home/root/inkscape/inkscape-1.3.2/build/bin/inkscape", \
                                  saveImgPath, "-o", outImgPath])
             else:
                 outImgPath = tmpFolder + "/" + filename + ".png"
                 
-                # subprocess.call(["/home/root/inkscape/inkscape-1.1.x/build/bin/inkscape", \
-                                #  saveImgPath, "-d", "150", "-o", outImgPath])
                 subprocess.call(["/home/root/inkscape/inkscape-1.3.2/build/bin/inkscape", \
                                  saveImgPath, "-d", "150", "-o", outImgPath])
 
@@ -177,11 +171,44 @@ def table_to_file(ctx, schema, tmpFolder=None, force_png=False, svgOptimize="Bit
             fileInfos.append([saveFilePath, mimetype, filename])
     return fileInfos
 
-#http://127.0.0.1:5400/test/w/fea5edf39e43bb91ac6121c5a7030364/ds/61358eb4-178d-49c0-b98c-26485b99c125/crosstab
-# tercenCtx = context.TercenContext(workflowId="fea5edf39e43bb91ac6121c5a7030364", stepId="61358eb4-178d-49c0-b98c-26485b99c125")
+def parse_args() -> dict:
+        workflowId = None
+        stepId = None
+
+
+        args = sys.argv
+        nArgs = len(args)
+        
+        for i in range(1, nArgs):
+            arg = args[i]
+            
+            if str.startswith(arg, '--'):
+                #argParts = str.split(arg, ' ')
+                argName = str.removeprefix(arg, '--')
+
+                if argName == 'workflowId':
+                    workflowId = args[i+1]
+                
+                if argName == 'stepId':
+                    stepId = args[i+1]
+                
+
+        return {'workflowId':workflowId, 
+                'stepId':stepId}
+
+
 #http://127.0.0.1:5400/test/w/fea5edf39e43bb91ac6121c5a7030364/ds/61358eb4-178d-49c0-b98c-26485b99c125
-# tercenCtx = context.TercenContext(workflowId="199554f886fb8d7e06e9568248043fb2", stepId="ad15f974-150f-4cd1-bdf3-aa7be5f8f2d8")
 tercenCtx = context.TercenContext()
+
+# print(sys.argv)
+# args = parse_args()
+# print(args)
+# if not args["workflowId"] is None:
+#     print(args["workflowId"])
+#     print(args["stepId"])
+#     tercenCtx = context.TercenContext(workflowId=args["workflowId"], stepId=args["stepId"])
+# else:
+#     tercenCtx = context.TercenContext()
 
 
 
@@ -229,11 +256,16 @@ elif outputFormat == "PDF - A4 (*.pdf)":
 else:
     raise ValueError("unsupported format")
 
+
+fixImgInfos = []
 for stpName,schema in schemas.items():
     fileInfo = table_to_file(tercenCtx, schema,  tmpFolder=tmpFolder, force_png=is_docx, svgOptimize=svgOptimize)
     
     for fi in fileInfo:
-        
+
+        if fi[1] == "image/svg+xml":
+            fixImgInfos.append(fi)
+
         if fi[1].startswith("image"):
             expo.add_blank_page()
 
@@ -260,10 +292,13 @@ for stpName,schema in schemas.items():
             expo.add_footer()
             expo.finish_page()
 
+expo.save( tempfile.gettempdir() + "/" + workflow.id + "/" + workflow.name + "_Report")
 
+if isinstance(expo, PPTXExporter):
+    print("FIXING")
+    print(fixImgInfos)
+    expo.fix_svg_images(fixImgInfos)
 
-imgDf = expo.as_dataframe( tempfile.gettempdir() + "/"   + workflow.id + "/" + workflow.name + "_Report")
-
-
+imgDf = expo.as_dataframe( )
 imgDf = tercenCtx.add_namespace(imgDf)
 tercenCtx.save(imgDf)
