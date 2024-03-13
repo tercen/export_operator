@@ -9,7 +9,7 @@ import polars as pl
 from os.path import basename
 import subprocess
 
-import re
+import re, os, pathlib
 from exporter.exporter import Exporter
 
 
@@ -46,7 +46,7 @@ class PPTXExporter(Exporter):
         if page_idx == None:
             page_idx = len(self.pages)-1
 
-        now = datetime.datetime.now().strftime("%H:%M --- %d, %B %Y")
+        now = datetime.datetime.now().strftime("%d %B %Y - %H:%M")
 
         text_size = 10
         left = Inches(0)
@@ -198,25 +198,108 @@ class PPTXExporter(Exporter):
                 ri += 1
 
    
-    def as_dataframe(self, filename):
-        # self.presentation.save("test.pptx")
-        self.presentation.save(self.tmpFolder + "/" + basename(filename) + ".pptx")
+    def fix_svg_images(self, fileInfos):
+        pptxPath = self.filename
+        print("pptxPath: {}".format(pptxPath))
+        zipBasePath = self.filename.replace(".pptx", "")
+
+        subprocess.call(["mv",pptxPath,\
+                          zipBasePath + ".zip"])
+        
+        subprocess.call(["unzip", "-q", zipBasePath + ".zip",\
+                          "-d", zipBasePath ])
+        
+        subprocess.call(["rm", zipBasePath + ".zip"])
+
+        # Search for the EMF files to be replaced
+        basePptFolder = zipBasePath + "/ppt"
+        directory = os.fsencode(basePptFolder + "/media")
+        fiIdx = 0
+        replacements = []
+        for file in sorted(os.listdir(directory)):
+            filename = os.fsdecode(file)
+            print(filename)
+            if filename.endswith(".emf") or filename.endswith(".wmf"): 
+                svg = fileInfos[fiIdx][0].replace(".emf", ".svg").replace(".wmf", ".svg")
+                zipImageName = os.path.join(os.fsdecode(directory), filename).replace(".emf", ".svg").replace(".wmf", ".svg")
+
+                # Replace slide Image
+                print("Copying: cp {} to replace {}".format(svg, filename ))
+                subprocess.call(["cp", svg, zipImageName])
+                subprocess.call(["rm",  os.path.join(os.fsdecode(directory), filename)])
+
+                replacements.append( (filename, zipImageName)  )
+                fiIdx += 1
+
+        for file in sorted(os.listdir(directory)):
+            print("-- {}".format(os.fsdecode(file)))
+
+        directory = os.fsencode(basePptFolder + "/slides/_rels")
+        fiIdx = 0
+
+        for file in sorted(os.listdir(directory)):
+            filename = os.fsdecode(file)
+            if filename.endswith(".rels"): 
+                print("Checking {}".format(filename))
+                with open(os.path.join(os.fsdecode(directory), filename), "r") as file:
+                    lines = file.readlines()
+                    txt_out = ""
+                    for line in lines:
+                        
+                        hasReplaced = False
+                        for repl in replacements:
+                            if pathlib.Path(repl[0]).stem in line:
+                                print("Replacing line {} in {} with {}".format(line, filename, repl[0].replace(".wmf", ".svg")))
+                                
+                                hasReplaced = True
+                                txt_out += line.replace(repl[0], repl[0].replace(".wmf", ".svg"))
+
+                        if not hasReplaced:
+                            txt_out += line
+
+                with open(os.path.join(os.fsdecode(directory), filename), "w") as file:
+                    file.write(txt_out)
+
+        wd = os.getcwd()
+        print("Creating zip from {}".format(((zipBasePath))))
+        os.chdir((zipBasePath))
+        
+
+        subprocess.call(["zip", "-D","-r","temp.zip", "."])
+        print(subprocess.check_output(["ls", "-la", zipBasePath]))
+        print("Create new zip in {}".format(pptxPath))
+        subprocess.call(["cp", "temp.zip", "/out/ppt.pptx"])
+        subprocess.call(["rm", "-f", pptxPath])
+        subprocess.call(["mv", "temp.zip", pptxPath])
+        subprocess.call(["ls", "-la", "."])
+        os.chdir(wd)
+        
+        
+
+    def save(self, filename):
+        self.filename = self.tmpFolder + "/" + basename(filename) + ".pptx"
+        # self.filename = self.tmpFolder + "/" + "A_RANDOM_NAME2" + ".pptx"
+        self.presentation.save(self.filename)
+
+    def as_dataframe(self):
+        # self.presentation.save("/out/test.pptx")
+        # self.presentation.save(self.tmpFolder + "/" + basename(filename) + ".pptx")
         
         
 
         if self.output == "pptx":
-            outname = basename(filename) + ".pptx"
+            outname = basename(self.filename) + ".pptx"
             mimetype = "application/vnd.ms-powerpoint"
-            with open(self.tmpFolder + "/" + basename(filename) + ".pptx", "rb") as file:
+            with open(self.filename, "rb") as file:
                 fileBytes = file.read()
         else:
-            outname = basename(filename) + ".pdf"
+            outname = basename(self.filename) + ".pdf"
             mimetype = "application/pdf"
             subprocess.call(["libreoffice", "--headless" ,\
                             "--convert-to", "pdf", \
-                            self.tmpFolder + "/" + basename(filename) + ".pptx", \
+                            self.filename, \
                             "--outdir", self.tmpFolder])
-            with open(self.tmpFolder + "/" + basename(filename) + ".pdf", "rb") as file:
+            with open(self.filename.replace(".pptx", ".pdf"), "rb") as file:
                 fileBytes = file.read()
         
         checksum = md5(fileBytes).hexdigest()

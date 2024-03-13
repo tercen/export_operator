@@ -149,27 +149,28 @@ class DOCXExporter(Exporter):
             self.__add_table(tableLines=tableLines, text_size=text_size)
                     
 
-
-   
-    def as_dataframe(self, filename):
+    def save(self, filename):
+        self.filename = filename
+        self.document.save(self.filename)
+    def as_dataframe(self):
         # self.document.save("test.docx")
-        self.document.save(self.tmpFolder + "/" + basename(filename) + ".docx")
+        filename = self.filename
         
         
 
         if self.output == "docx":
-            outname = basename(filename) + ".docx"
+            outname = basename(self.filename) + ".docx"
             mimetype = "application/vnd.ms-word"
-            with open(self.tmpFolder + "/" + basename(filename) + ".docx", "rb") as file:
+            with open(self.filename, "rb") as file:
                 fileBytes = file.read()
         else:
-            outname = basename(filename) + ".pdf"
+            outname = basename(self.filename) + ".pdf"
             mimetype = "application/pdf"
             subprocess.call(["libreoffice", "--headless" ,\
                             "--convert-to", "pdf", \
-                            self.tmpFolder + "/" + basename(filename) + ".docx", \
+                            self.filename, \
                             "--outdir", self.tmpFolder])
-            with open(self.tmpFolder + "/" + basename(filename) + ".pdf", "rb") as file:
+            with open(sself.filename.replace(".docx", ".pdf"), "rb") as file:
                 fileBytes = file.read()
         
         checksum = md5(fileBytes).hexdigest()
