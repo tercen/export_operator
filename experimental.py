@@ -194,7 +194,10 @@ def optimize_svg(filepath, mode="bitmap auto", labelPos="ignore", context=None):
                 "d":dString}
             circleGroupElement.attrib = attribDict
 
-        
+    for key, labelGroup in dictToAdd.items():
+        labelCircle = ET.SubElement(docRoot, "ns0:circle")
+        labelCircle.attrib = labelGroup[0].attrib
+
     
     intermediateFile2 = filepath.replace(".svg", "_path.svg")
     outFile = filepath.replace(".svg", "_path_optimized.svg")
