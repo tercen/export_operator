@@ -137,8 +137,8 @@ def optimize_svg(filepath, mode="bitmap auto", labelPos="ignore", context=None):
     # Create the path element for the group of scatter points
     for key, circleGroup in keysBaseDict.items():
         if len(circleGroup) > 1:
-            groupElement = ET.Element("g")
-            groupElement.attrib["id"] = "g{}".format(key)
+            # groupElement = ET.Element("g")
+            # groupElement.attrib["id"] = "g{}".format(key)
 
             circleGroupElement = ET.SubElement(docRoot, "ns0:path")
             dString = ""
@@ -156,7 +156,7 @@ def optimize_svg(filepath, mode="bitmap auto", labelPos="ignore", context=None):
                 
 
                 add = True
-                
+                #bbs might be not needed anymore
                 if len(bbs) < 2:
                     add = True
                     bbs.append([  circleInfo["x"], circleInfo["y"], circleInfo["r"] ])    
@@ -195,8 +195,29 @@ def optimize_svg(filepath, mode="bitmap auto", labelPos="ignore", context=None):
             circleGroupElement.attrib = attribDict
 
     for key, labelGroup in dictToAdd.items():
-        labelCircle = ET.SubElement(docRoot, "ns0:circle")
-        labelCircle.attrib = labelGroup[0].attrib
+        c = labelGroup[0]
+        labelCircle = ET.SubElement(docRoot, "ns0:path")
+        circleInfo = get_circle_info(c)
+
+        radius = circleInfo["r"]*3
+
+        mX = circleInfo["x"] 
+        mY = circleInfo["y"] 
+
+        dString = "M {:.04},{:.04} A {:.04},{:.04} 0 0 1 {:.04},{:.04} {:.04},{:.04} 0 0 1 {:.04},{:.04} {:.04},{:.04} 0 0 1 {:.04},{:.04} {:.04},{:.04} 0 0 1 {:.04},{:.04} Z ".format(
+                            mX + radius,mY, radius, radius,\
+                            mX, mY + radius, radius, radius,\
+                            mX - radius, mY, radius, radius,\
+                            mX, mY - radius, radius, radius,\
+                            mX + radius,mY
+                            
+                        )
+
+        attribDict = {"id":key,\
+            "class":"class_{}".format(key),\
+            "style":labelGroup[0].attrib["style"], \
+            "d":dString}
+        labelCircle.attrib = attribDict
 
     
     intermediateFile2 = filepath.replace(".svg", "_path.svg")
