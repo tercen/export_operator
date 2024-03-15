@@ -200,15 +200,12 @@ class PPTXExporter(Exporter):
    
     def fix_svg_images(self, fileInfos):
         pptxPath = self.filename
-        print("pptxPath: {}".format(pptxPath))
+        
         zipBasePath = self.filename.replace(".pptx", "")
 
-        subprocess.call(["mv",pptxPath,\
-                          zipBasePath + ".zip"])
-        
-        subprocess.call(["unzip", "-q", zipBasePath + ".zip",\
-                          "-d", zipBasePath ])
-        
+        # Rename PPT as .zip to access its files
+        subprocess.call(["mv",pptxPath, zipBasePath + ".zip"])
+        subprocess.call(["unzip", "-q", zipBasePath + ".zip", "-d", zipBasePath ])
         subprocess.call(["rm", zipBasePath + ".zip"])
 
         # Search for the EMF files to be replaced
@@ -218,21 +215,18 @@ class PPTXExporter(Exporter):
         replacements = []
         for file in sorted(os.listdir(directory)):
             filename = os.fsdecode(file)
-            print(filename)
+
             if filename.endswith(".emf") or filename.endswith(".wmf"): 
                 svg = fileInfos[fiIdx][0].replace(".emf", ".svg").replace(".wmf", ".svg")
                 zipImageName = os.path.join(os.fsdecode(directory), filename).replace(".emf", ".svg").replace(".wmf", ".svg")
 
                 # Replace slide Image
-                print("Copying: cp {} to replace {}".format(svg, filename ))
                 subprocess.call(["cp", svg, zipImageName])
                 subprocess.call(["rm",  os.path.join(os.fsdecode(directory), filename)])
 
                 replacements.append( (filename, zipImageName)  )
                 fiIdx += 1
 
-        for file in sorted(os.listdir(directory)):
-            print("-- {}".format(os.fsdecode(file)))
 
         directory = os.fsencode(basePptFolder + "/slides/_rels")
         fiIdx = 0
@@ -240,7 +234,6 @@ class PPTXExporter(Exporter):
         for file in sorted(os.listdir(directory)):
             filename = os.fsdecode(file)
             if filename.endswith(".rels"): 
-                print("Checking {}".format(filename))
                 with open(os.path.join(os.fsdecode(directory), filename), "r") as file:
                     lines = file.readlines()
                     txt_out = ""
@@ -249,8 +242,6 @@ class PPTXExporter(Exporter):
                         hasReplaced = False
                         for repl in replacements:
                             if pathlib.Path(repl[0]).stem in line:
-                                print("Replacing line {} in {} with {}".format(line, filename, repl[0].replace(".wmf", ".svg")))
-                                
                                 hasReplaced = True
                                 txt_out += line.replace(repl[0], repl[0].replace(".wmf", ".svg"))
 
@@ -261,13 +252,10 @@ class PPTXExporter(Exporter):
                     file.write(txt_out)
 
         wd = os.getcwd()
-        print("Creating zip from {}".format(((zipBasePath))))
         os.chdir((zipBasePath))
         
 
         subprocess.call(["zip", "-D","-r","temp.zip", "."])
-        print(subprocess.check_output(["ls", "-la", zipBasePath]))
-        print("Create new zip in {}".format(pptxPath))
         subprocess.call(["cp", "temp.zip", "/out/ppt.pptx"])
         subprocess.call(["rm", "-f", pptxPath])
         subprocess.call(["mv", "temp.zip", pptxPath])
@@ -278,7 +266,6 @@ class PPTXExporter(Exporter):
 
     def save(self, filename):
         self.filename = self.tmpFolder + "/" + basename(filename) + ".pptx"
-        # self.filename = self.tmpFolder + "/" + "A_RANDOM_NAME2" + ".pptx"
         self.presentation.save(self.filename)
 
     def as_dataframe(self):
@@ -288,7 +275,7 @@ class PPTXExporter(Exporter):
         
 
         if self.output == "pptx":
-            outname = basename(self.filename) + ".pptx"
+            outname = basename(self.filename) 
             mimetype = "application/vnd.ms-powerpoint"
             with open(self.filename, "rb") as file:
                 fileBytes = file.read()

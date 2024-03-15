@@ -1,19 +1,19 @@
 import os, sys
-os.environ['OPENBLAS_NUM_THREADS'] = '1'
-os.environ["OMP_NUM_THREADS"] = "1"
-os.environ["MKL_NUM_THREADS"] = "1"
-os.environ["NUMEXPR_NUM_THREADS"] = "1"
+# os.environ['OPENBLAS_NUM_THREADS'] = '1'
+# os.environ["OMP_NUM_THREADS"] = "1"
+# os.environ["MKL_NUM_THREADS"] = "1"
+# os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
 from tercen.client import context as context
 from tercen.model.impl import SimpleRelation, CompositeRelation, RenameRelation
-from tercen.http.HttpClientService import decodeTSON
 
-from pathlib import Path
-import  base64, subprocess, string, random, os, shutil
+
+import string, random, os, shutil
 
 from exporter.ppt_exporter import PPTXExporter
 from exporter.docx_exporter import DOCXExporter
-from experimental import optimize_svg
+from exporter.util import table_to_file
+
 import tempfile
 
 def get_simple_relation_id_list(obj):
@@ -53,123 +53,6 @@ def get_plot_schemas(ctx, steps ):
 def random_string(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
-#docker run --rm -v tmp:/out/ --net=host export_op --taskId=
-# Save image/text file so the python-pptx can read it later
-def table_to_file(ctx, schema, tmpFolder=None, force_png=False, svgOptimize="Bitmap Auto"):
-    for c in schema.columns:
-        if "mimetype" in c.name:
-            mimeColName = c.name
-
-    nameColName = None
-    for c in schema.columns:
-        if "filename" in c.name:
-            nameColName = c.name
-
-    # TODO Update API call to select file content
-    #fileContent = ctx.context.client.tableSchemaService.selectFileContentStream(schema.id, filenames[0])
-    mimetypeTbl = decodeTSON(ctx.context.client.tableSchemaService.selectStream(schema.id, [mimeColName], 0, -1))
-    ctt = ctx.context.client.tableSchemaService.selectStream(schema.id, [".content"], 0, -1)
-
-    if not nameColName is None:
-        filenameTbl = decodeTSON(ctx.context.client.tableSchemaService.selectStream(schema.id, [nameColName], 0, -1))
-        filenames = filenameTbl["columns"][0]["values"]
-
-    
-
-    if tmpFolder is None:
-        tmpFolder = tempfile.gettempdir() + "/"  + random_string()
-        shutil.rmtree(tmpFolder)
-        os.makedirs(tmpFolder )
-    
-    bytesTbls = decodeTSON(ctt)
-    mimetypes = mimetypeTbl["columns"][0]["values"]
-    
-    fileInfos = []
-
-    nRows = schema.nRows
-    multifile = False
-    if schema.nRows > 1:
-        # Merge all with same name
-        byteObjs = []
-        fnames = [[filenames[0]]]
-
-        currentFname = filenames[0]
-        b =  base64.b64decode(bytesTbls["columns"][0]["values"][0])
-        k = 1
-        while k < len(filenames):
-            if filenames[k] == currentFname:
-                b = b + base64.b64decode(bytesTbls["columns"][0]["values"][k])
-            else:
-                currentFname = filenames[k]
-                fnames.append([currentFname])
-                byteObjs.append([b])
-                b = base64.b64decode(bytesTbls["columns"][0]["values"][k])
-            k = k + 1
-
-        byteObjs.append([b])
-        nRows = len(fnames)
-        multifile = True
-
-        
-
-
-    for i in range(0, nRows):
-        mimetype = mimetypes[i]
-        if multifile == True:
-            filename = Path(fnames[i][0]).stem
-        else:
-            filename = Path(filenames[i]).stem
-
-        
-        baseImgPath = tmpFolder + "/" + filename
-
-
-        if mimetype == "image/svg+xml":
-            saveImgPath = baseImgPath + ".svg"
-
-            
-            if multifile == True:
-                with open(saveImgPath, "wb") as file:
-                    file.write( byteObjs[i][0] )
-            else:
-                with open(saveImgPath, "wb") as file:
-                    file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i] ) )
-
-
-            
-            if force_png == False:
-                saveImgPath = optimize_svg(saveImgPath, mode=svgOptimize)
-                outImgPath =  saveImgPath.replace(".svg", ".wmf")  #"{}/{}_{}.png".format(tmpFolder, filename, i)
-
-
-                subprocess.call(["/home/root/inkscape/inkscape-1.3.2/build/bin/inkscape", \
-                                 saveImgPath, "-o", outImgPath])
-            else:
-                outImgPath = tmpFolder + "/" + filename + ".png"
-                
-                subprocess.call(["/home/root/inkscape/inkscape-1.3.2/build/bin/inkscape", \
-                                 saveImgPath, "-d", "150", "-o", outImgPath])
-
-            fileInfos.append([outImgPath, mimetype, filename])
-       
-        if mimetype == "image/png":
-            saveImgPath = baseImgPath + ".png"
-
-            if multifile == True:
-                with open(saveImgPath, "wb") as file:
-                    file.write( byteObjs[i][0] )
-            else:
-                with open(saveImgPath, "wb") as file:
-                    file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i] ) )
-
-            fileInfos.append([saveImgPath, mimetype, filename])
-        if mimetype == "text/markdown":
-            saveFilePath = baseImgPath + ".txt"
-            with open(saveFilePath, "wb") as file:
-                file.write(base64.b64decode(bytesTbls["columns"][0]["values"][i]))
-
-            fileInfos.append([saveFilePath, mimetype, filename])
-    return fileInfos
 
 def parse_args() -> dict:
         workflowId = None
@@ -200,22 +83,10 @@ def parse_args() -> dict:
 #http://127.0.0.1:5400/test/w/fea5edf39e43bb91ac6121c5a7030364/ds/61358eb4-178d-49c0-b98c-26485b99c125
 tercenCtx = context.TercenContext()
 
-# print(sys.argv)
-# args = parse_args()
-# print(args)
-# if not args["workflowId"] is None:
-#     print(args["workflowId"])
-#     print(args["stepId"])
-#     tercenCtx = context.TercenContext(workflowId=args["workflowId"], stepId=args["stepId"])
-# else:
-#     tercenCtx = context.TercenContext()
-
-
-
 
 outputFormat = tercenCtx.operator_property('OutputFormat', typeFn=str, default="MS-PowerPoint (*.pptx)")
-svgOptimize = tercenCtx.operator_property('SVG Optimization', typeFn=str, default="Bitmap Auto")
-# outputFormat = "MS-PowerPoint (*.pptx)"
+svgOptimize = tercenCtx.operator_property('SVGOptimization', typeFn=str, default="Bitmap Auto")
+labelPos = tercenCtx.operator_property('LabelPosition', typeFn=str, default="Right")
 
 project = tercenCtx.context.client.projectService.get(tercenCtx.schema.projectId)
 objs = tercenCtx.context.client.persistentService.getDependentObjects(project.id)
@@ -259,7 +130,8 @@ else:
 
 fixImgInfos = []
 for stpName,schema in schemas.items():
-    fileInfo = table_to_file(tercenCtx, schema,  tmpFolder=tmpFolder, force_png=is_docx, svgOptimize=svgOptimize)
+    # Save tables as temporary image files
+    fileInfo = table_to_file(tercenCtx, schema,  tmpFolder=tmpFolder, force_png=is_docx, svgOptimize=svgOptimize, labelPos=labelPos)
     
     for fi in fileInfo:
 
@@ -294,9 +166,8 @@ for stpName,schema in schemas.items():
 
 expo.save( tempfile.gettempdir() + "/" + workflow.id + "/" + workflow.name + "_Report")
 
+# Only PPT needs this fix for editable SVGs
 if isinstance(expo, PPTXExporter):
-    print("FIXING")
-    print(fixImgInfos)
     expo.fix_svg_images(fixImgInfos)
 
 imgDf = expo.as_dataframe( )
