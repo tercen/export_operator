@@ -118,7 +118,7 @@ def optimize_svg(filepath, mode="bitmap auto", labelPos="ignore", context=None):
     # Try to remove circles in the labels
     dictToAdd = {}
     for key, circleGroup in keysBaseDict.items():
-        xVec = [float(c.attrib["x"]) for c in circleGroup]
+        xVec = [float(c.attrib["cx"]) for c in circleGroup]
         # REMOVE from group and create a new one jsut with this one circle
         remIdx = -1
         if labelPos == "right":
