@@ -1,0 +1,1 @@
+INKSCAPE_PATH="/home/root/inkscape/inkscape-1.3.2/build/bin/inkscape"

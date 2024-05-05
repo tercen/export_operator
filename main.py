@@ -27,8 +27,7 @@ def get_simple_relation_id_list(obj):
 
     elif isinstance(obj, RenameRelation):
         cRel = obj.relation
-        idList.extend(get_simple_relation_id_list(cRel.mainRelation))
-        idList.extend(get_simple_relation_id_list(cRel.joinOperators))
+        idList.extend(get_simple_relation_id_list(cRel))
     elif isinstance(obj, list):
         # Assumed: List of JoinOperator!
         for o in obj:
@@ -80,7 +79,7 @@ def parse_args() -> dict:
                 'stepId':stepId}
 
 
-#http://127.0.0.1:5400/test/w/fea5edf39e43bb91ac6121c5a7030364/ds/61358eb4-178d-49c0-b98c-26485b99c125
+#http://127.0.0.1:5400/test/w/05667561962b97ec1e693784fc0053b5/ds/b6b765de-2a4f-4d81-8363-0bbe3cc2db21
 tercenCtx = context.TercenContext()
 
 
@@ -89,7 +88,7 @@ svgOptimize = tercenCtx.operator_property('SVGOptimization', typeFn=str, default
 labelPos = tercenCtx.operator_property('LabelPosition', typeFn=str, default="Right")
 
 project = tercenCtx.context.client.projectService.get(tercenCtx.schema.projectId)
-objs = tercenCtx.context.client.persistentService.getDependentObjects(project.id)
+# objs = tercenCtx.context.client.persistentService.getDependentObjects(project.id)
 
 
 if hasattr(tercenCtx.context, "workflowId"):
