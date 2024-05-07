@@ -98,8 +98,10 @@ class PPTXExporter(Exporter):
                 pgImg.height = int(pgImg.height * relChange * 0.8)
             
 
-    def add_text(self, textFile, page_idx=0, text_size=11):
-
+    def add_text(self, textFile, page_idx=None, text_size=11):
+        if page_idx is None:
+            page_idx = len(self.pages)-1
+            
         with open(textFile, "r") as file:
             text = file.readlines()
 
@@ -256,10 +258,10 @@ class PPTXExporter(Exporter):
         
 
         subprocess.call(["zip", "-D","-r","temp.zip", "."])
-        subprocess.call(["cp", "temp.zip", "/out/ppt.pptx"])
+        subprocess.call(["cp", "temp.zip", "/tmp/ppt.pptx"])
         subprocess.call(["rm", "-f", pptxPath])
-        subprocess.call(["mv", "temp.zip", pptxPath])
-        subprocess.call(["ls", "-la", "."])
+        subprocess.call(["mv", "/tmp/ppt.pptx", pptxPath])
+        # subprocess.call(["ls", "-la", "."])
         os.chdir(wd)
         
         

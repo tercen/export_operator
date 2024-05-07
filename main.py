@@ -79,7 +79,7 @@ def parse_args() -> dict:
                 'stepId':stepId}
 
 
-#http://127.0.0.1:5400/test/w/05667561962b97ec1e693784fc0053b5/ds/b6b765de-2a4f-4d81-8363-0bbe3cc2db21
+#http://127.0.0.1:5400/test/w/05667561962b97ec1e693784fc0029f9/ds/478852a9-1ea8-4999-94cf-b4ba0ed16ea4
 tercenCtx = context.TercenContext()
 
 
@@ -104,7 +104,7 @@ else:
     workflow = tercenCtx.context.client.workflowService.get(workflowId)
 
 
-
+# os.path.exists()
 tmpFolder = tempfile.gettempdir() + "/"  + workflow.id
 if os.path.exists(tmpFolder):
     shutil.rmtree(tmpFolder)
@@ -163,7 +163,7 @@ for stpName,schema in schemas.items():
             expo.add_footer()
             expo.finish_page()
 
-expo.save( tempfile.gettempdir() + "/" + workflow.id + "/" + workflow.name + "_Report")
+expo.save( tmpFolder + "/" + workflow.name + "_Report")
 
 # Only PPT needs this fix for editable SVGs
 if isinstance(expo, PPTXExporter):
