@@ -87,7 +87,7 @@ project = tercenCtx.client.projectService.get(tercenCtx.schema.projectId)
 workflow = tercenCtx.client.workflowService.get( tercenCtx.get_workflow_id() )
 
 
-tmpFolder = "tmp2/" #get_temp_dir(workflow.id)
+tmpFolder = get_temp_dir(workflow.id)
 
 
 schemas = get_plot_schemas(tercenCtx, workflow.steps)
