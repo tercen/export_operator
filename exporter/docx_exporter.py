@@ -153,9 +153,7 @@ class DOCXExporter(Exporter):
         self.filename = filename
         self.document.save(self.filename)
     def as_dataframe(self):
-        # self.document.save("test.docx")
-        filename = self.filename
-        
+      
         
 
         if self.output == "docx":

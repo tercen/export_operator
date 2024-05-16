@@ -9,7 +9,7 @@ import polars as pl
 from os.path import basename
 import subprocess
 import random, string, re
-
+import os, glob
 
 from PIL import Image
 
@@ -23,7 +23,7 @@ class Exporter:
         if tmpFolder is None:
             self.tmpFolder = "/tmp/" + ''.join(random.choice(string.ascii_letters) for _ in range(15))
         else: 
-            self.tmpFolder = tmpFolder
+            self.tmpFolder = os.path.abspath(tmpFolder)
 
 
     def add_blank_page(self):
@@ -46,4 +46,11 @@ class Exporter:
         pass 
     def as_dataframe(self ):
         return None
+    
+    def clean_temp_files(self):
+        for fname in glob.glob(self.tmpFolder + "/" + "*"):
+            if os.path.isdir(fname):
+                subprocess.call(["rm", "-rf",  fname])
+            elif not fname.endswith(".pptx") and not fname.endswith(".docx"):
+                subprocess.call(["rm", "-f", fname])
 

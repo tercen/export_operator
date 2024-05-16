@@ -7,46 +7,40 @@ import os, sys
 from tercen.client import context as context
 from tercen.model.impl import SimpleRelation, CompositeRelation, RenameRelation
 
-
+from tercen.util.helper_objects import ObjectTraverser
+from tercen.util.helper_functions import get_temp_dir
 import string, random, os, shutil
 
 from exporter.ppt_exporter import PPTXExporter
 from exporter.docx_exporter import DOCXExporter
 from exporter.util import table_to_file
 
-import tempfile
 
-def get_simple_relation_id_list(obj):
-    idList = []
 
-    if isinstance(obj, SimpleRelation):
-        idList.extend([obj.id])
-    elif isinstance(obj, CompositeRelation):
-        idList.extend(get_simple_relation_id_list(obj.mainRelation))
-        idList.extend(get_simple_relation_id_list(obj.joinOperators))
 
-    elif isinstance(obj, RenameRelation):
-        cRel = obj.relation
-        idList.extend(get_simple_relation_id_list(cRel))
-    elif isinstance(obj, list):
-        # Assumed: List of JoinOperator!
-        for o in obj:
-            idList.extend(get_simple_relation_id_list(o.rightRelation))
-
-    return idList
+import numpy as np
 
 def get_plot_schemas(ctx, steps ):
     schemas = {}
     for stp in steps:
 
         if hasattr(stp, "computedRelation"):
-            relationIds = get_simple_relation_id_list(stp.computedRelation)
+            traverser = ObjectTraverser()
+            
+            relationIds = np.unique( [rel.id for rel in traverser.traverse(stp.computedRelation, target=SimpleRelation)] )
+
             for i in range(0, len(relationIds)):
-                
-                schema = ctx.context.client.tableSchemaService.get(relationIds[i])
+                schema = ctx.client.tableSchemaService.get(relationIds[i])
 
                 if any([c.name == ".content" for c in schema.columns]):
-                    schemas[stp.name] = schema
+                    stpName = stp.name
+                    sk = 1
+                    while stpName in schemas:
+                        stpName = stp.name + "_" + str(sk)
+                        sk += 1
+                        
+                    schemas[stpName] = schema
+                    
     
     return schemas
 def random_string(size=6, chars=string.ascii_uppercase + string.digits):
@@ -79,7 +73,7 @@ def parse_args() -> dict:
                 'stepId':stepId}
 
 
-#http://127.0.0.1:5400/test/w/05667561962b97ec1e693784fc0029f9/ds/478852a9-1ea8-4999-94cf-b4ba0ed16ea4
+#http://127.0.0.1:5400/test/w/05667561962b97ec1e693784fc0029f9/ds/9182c8f4-b047-446c-89da-dd9c13d8aaf9
 tercenCtx = context.TercenContext()
 
 
@@ -87,28 +81,14 @@ outputFormat = tercenCtx.operator_property('OutputFormat', typeFn=str, default="
 svgOptimize = tercenCtx.operator_property('SVGOptimization', typeFn=str, default="Bitmap Auto")
 labelPos = tercenCtx.operator_property('LabelPosition', typeFn=str, default="Right")
 
-project = tercenCtx.context.client.projectService.get(tercenCtx.schema.projectId)
-# objs = tercenCtx.context.client.persistentService.getDependentObjects(project.id)
+project = tercenCtx.client.projectService.get(tercenCtx.schema.projectId)
 
 
-if hasattr(tercenCtx.context, "workflowId"):
-    workflow = tercenCtx.context.client.workflowService.get(tercenCtx.context.workflowId)
-else:
-    task = tercenCtx.context.client.taskService.get(tercenCtx.task.id)
-
-    workflowId = None
-    for envPair in task.environment:
-        if envPair.key == "workflow.id":
-            workflowId = envPair.value
-
-    workflow = tercenCtx.context.client.workflowService.get(workflowId)
+workflow = tercenCtx.client.workflowService.get( tercenCtx.get_workflow_id() )
 
 
-# os.path.exists()
-tmpFolder = tempfile.gettempdir() + "/"  + workflow.id
-if os.path.exists(tmpFolder):
-    shutil.rmtree(tmpFolder)
-os.makedirs(tmpFolder )
+tmpFolder = "tmp2/" #get_temp_dir(workflow.id)
+
 
 schemas = get_plot_schemas(tercenCtx, workflow.steps)
 
@@ -163,7 +143,7 @@ for stpName,schema in schemas.items():
             expo.add_footer()
             expo.finish_page()
 
-expo.save( tmpFolder + "/" + workflow.name + "_Report")
+expo.save(  workflow.name + "_Report")
 
 # Only PPT needs this fix for editable SVGs
 if isinstance(expo, PPTXExporter):
@@ -171,4 +151,8 @@ if isinstance(expo, PPTXExporter):
 
 imgDf = expo.as_dataframe( )
 imgDf = tercenCtx.add_namespace(imgDf)
+
+
+expo.clean_temp_files()
+
 tercenCtx.save(imgDf)

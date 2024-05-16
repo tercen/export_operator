@@ -205,7 +205,7 @@ class PPTXExporter(Exporter):
         
         zipBasePath = self.filename.replace(".pptx", "")
 
-        # Rename PPT as .zip to access its files
+        # Rename PPT as .zip and access its files
         subprocess.call(["mv",pptxPath, zipBasePath + ".zip"])
         subprocess.call(["unzip", "-q", zipBasePath + ".zip", "-d", zipBasePath ])
         subprocess.call(["rm", zipBasePath + ".zip"])
@@ -256,12 +256,12 @@ class PPTXExporter(Exporter):
         wd = os.getcwd()
         os.chdir((zipBasePath))
         
-
-        subprocess.call(["zip", "-D","-r","temp.zip", "."])
+        subprocess.check_output(["zip", "-h"])
+        subprocess.call(["zip", "-qD","-r","temp.zip", "."])
         subprocess.call(["cp", "temp.zip", "/tmp/ppt.pptx"])
-        subprocess.call(["rm", "-f", pptxPath])
+        subprocess.call(["rm", "-rf", pptxPath])
         subprocess.call(["mv", "/tmp/ppt.pptx", pptxPath])
-        # subprocess.call(["ls", "-la", "."])
+
         os.chdir(wd)
         
         
@@ -271,11 +271,6 @@ class PPTXExporter(Exporter):
         self.presentation.save(self.filename)
 
     def as_dataframe(self):
-        # self.presentation.save("/out/test.pptx")
-        # self.presentation.save(self.tmpFolder + "/" + basename(filename) + ".pptx")
-        
-        
-
         if self.output == "pptx":
             outname = basename(self.filename) 
             mimetype = "application/vnd.ms-powerpoint"

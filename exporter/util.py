@@ -4,13 +4,27 @@ from tercen.http.HttpClientService import decodeTSON
 from experimental import optimize_svg
 
 from exporter.config import INKSCAPE
-
+import numpy as np
 
 def random_string(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
+
+def read_in_chunks(file_object, chunk_size=128 * 1024):
+    while True:
+        data = file_object.read(chunk_size)
+        if not data:
+            break
+        yield data
+
+
 # Save image/text file so the python-pptx can read it later
 def table_to_file(ctx, schema, tmpFolder=None, force_png=False, svgOptimize="Bitmap Auto", labelPos="Ignore"):
+    if tmpFolder is None:
+        tmpFolder = tempfile.gettempdir() + "/"  + random_string()
+        shutil.rmtree(tmpFolder)
+        os.makedirs(tmpFolder)
+    
     for c in schema.columns:
         if "mimetype" in c.name:
             mimeColName = c.name
@@ -19,77 +33,29 @@ def table_to_file(ctx, schema, tmpFolder=None, force_png=False, svgOptimize="Bit
     for c in schema.columns:
         if "filename" in c.name:
             nameColName = c.name
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    # TODO Update API call to select file content [Replace block below]
-    #fileContent = ctx.context.client.tableSchemaService.selectFileContentStream(schema.id, filenames[0])
-    mimetypeTbl = decodeTSON(ctx.context.client.tableSchemaService.selectStream(schema.id, [mimeColName], 0, -1))
-    ctt = ctx.context.client.tableSchemaService.selectStream(schema.id, [".content"], 0, -1)
-
-    if not nameColName is None:
-        filenameTbl = decodeTSON(ctx.context.client.tableSchemaService.selectStream(schema.id, [nameColName], 0, -1))
-        filenames = filenameTbl["columns"][0]["values"]
-
-    if tmpFolder is None:
-        tmpFolder = tempfile.gettempdir() + "/"  + random_string()
-        shutil.rmtree(tmpFolder)
-        os.makedirs(tmpFolder)
-    
-    bytesTbls = decodeTSON(ctt)
-    mimetypes = mimetypeTbl["columns"][0]["values"]
-    # ENDOF TODO +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            
+    mimetypes = decodeTSON(ctx.context.client.tableSchemaService.selectStream(schema.id, [mimeColName], 0, -1))['columns'][0]['values']
+    filenames = np.unique(decodeTSON(ctx.context.client.tableSchemaService.selectStream(schema.id, [nameColName], 0, -1))['columns'][0]['values'])
     fileInfos = []
-
-    nRows = schema.nRows
-    multifile = False
-    if schema.nRows > 1:
-        # Merge all with same name
-        byteObjs = []
-        fnames = [[filenames[0]]]
-
-        currentFname = filenames[0]
-        b =  base64.b64decode(bytesTbls["columns"][0]["values"][0])
-        k = 1
-        while k < len(filenames):
-            if filenames[k] == currentFname:
-                b = b + base64.b64decode(bytesTbls["columns"][0]["values"][k])
-            else:
-                currentFname = filenames[k]
-                fnames.append([currentFname])
-                byteObjs.append([b])
-                b = base64.b64decode(bytesTbls["columns"][0]["values"][k])
-            k = k + 1
-
-        byteObjs.append([b])
-        nRows = len(fnames)
-        multifile = True
-
+    
+    for filename, mimetype in zip(filenames, mimetypes):
+        baseImgPath = tmpFolder + "/" + Path(filename).stem
         
-
-
-    for i in range(0, nRows):
-        mimetype = mimetypes[i]
-        if multifile == True:
-            filename = Path(fnames[i][0]).stem
-        else:
-            filename = Path(filenames[i]).stem
-
         
-        baseImgPath = tmpFolder + "/" + filename
-
-
+        fileContent = ctx.context.client.tableSchemaService.selectFileContentStream(schema.id, filename)
+    
         if mimetype == "image/svg+xml":
             saveImgPath = baseImgPath + ".svg"
-
+            with open(saveImgPath, "ab") as f:
+                for chunk in read_in_chunks(fileContent):
+                    f.write(chunk)
             
-            if multifile == True:
-                with open(saveImgPath, "wb") as file:
-                    file.write( byteObjs[i][0] )
+            if force_png == True:
+                outImgPath = tmpFolder + "/" + filename + ".png"
+                
+                subprocess.call([INKSCAPE, \
+                                 saveImgPath, "-d", "150", "-o", outImgPath])
             else:
-                with open(saveImgPath, "wb") as file:
-                    file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i] ) )
-
-            
-            if force_png == False:
                 # Optimizations to reduce SVG file size, otherwise large scatter plots may be untractable
                 saveImgPath = optimize_svg(saveImgPath, mode=svgOptimize, labelPos=labelPos, context=ctx)
 
@@ -100,42 +66,22 @@ def table_to_file(ctx, schema, tmpFolder=None, force_png=False, svgOptimize="Bit
 
                 subprocess.call([INKSCAPE, \
                                  saveImgPath, "-o", outImgPath])
-            else:
-                outImgPath = tmpFolder + "/" + filename + ".png"
+            
+            saveFilePath = outImgPath
+        else:
+            if mimetype.startswith("image"):
+                saveFilePath = baseImgPath + "." + mimetype.split("/")[1]  
+
+            if mimetype == "text/markdown":
+                saveFilePath = baseImgPath + ".txt"
                 
-                subprocess.call([INKSCAPE, \
-                                 saveImgPath, "-d", "150", "-o", outImgPath])
+            with open(saveFilePath, "ab") as f:
+                for chunk in read_in_chunks(fileContent):
+                    f.write(chunk)
 
-            fileInfos.append([outImgPath, mimetype, filename])
-       
-        if mimetype == "image/png":
-            saveImgPath = baseImgPath + ".png"
-
-            if multifile == True:
-                with open(saveImgPath, "wb") as file:
-                    file.write( byteObjs[i][0] )
-            else:
-                with open(saveImgPath, "wb") as file:
-                    file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i] ) )
-
-            fileInfos.append([saveImgPath, mimetype, filename])
-
-        if mimetype == "image/jpg" or mimetype == "image/jpeg":
-            saveImgPath = baseImgPath + ".jpg"
-
-            if multifile == True:
-                with open(saveImgPath, "wb") as file:
-                    file.write( byteObjs[i][0] )
-            else:
-                with open(saveImgPath, "wb") as file:
-                    file.write( base64.b64decode(bytesTbls["columns"][0]["values"][i] ) )
-
-            fileInfos.append([saveImgPath, mimetype, filename])
-
-        if mimetype == "text/markdown":
-            saveFilePath = baseImgPath + ".txt"
-            with open(saveFilePath, "wb") as file:
-                file.write(base64.b64decode(bytesTbls["columns"][0]["values"][i]))
-
-            fileInfos.append([saveFilePath, mimetype, filename])
+            
+        fileInfos.append([saveFilePath, mimetype, filename])
+   
     return fileInfos
+
+
