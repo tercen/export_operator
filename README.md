@@ -1,15 +1,16 @@
-
 # Export Report Operator
 
 #### Description
 
-Export all generated plots from a given a workflow in DOCX, PPTX or PDF format.
+Export all generated plots from a given workflow in DOCX, PPTX or PDF format.
 
 #### Usage
 
-Crosstab projections are not used in the operator, though Tercen requires attribution of at least one factor.
+This operator reads plots from workflow steps and exports them as documents. No crosstab input is required.
 
-#### Usage
+#### Output
 
-A single table containing the file to be downloaded.
-
+A single table containing the exported file with columns:
+- `mimetype`: File MIME type
+- `filename`: Output filename
+- `.content`: File content reference
