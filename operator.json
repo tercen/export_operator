@@ -4,8 +4,8 @@
     "tags": ["export", "reporting", "workflow"],
     "authors": ["tercen"],
     "urls": ["https://github.com/tercen/export_operator"],
-    "container":"tercen/export_operator:latest", 
-    "properties": [ 
+    "container":"tercen/export_operator:latest",
+    "properties": [
         {
             "kind": "EnumeratedProperty",
             "name": "OutputFormat",
@@ -28,7 +28,7 @@
               "Bitmap",
               "Bitmap Auto",
               "Path"
-              
+
             ]
         },
 
@@ -40,8 +40,15 @@
           "values": [
             "Ignore",
             "Left",
-            "Right"            
+            "Right"
           ]
       }
-    ]
+    ],
+    "operatorSpec": {
+      "kind": "OperatorSpec",
+      "ontologyUri": "https://tercen.com/_ontology/tercen",
+      "ontologyVersion": "1.0.0",
+      "inputSpecs": [],
+      "outputSpecsV2": []
+    }
 }
