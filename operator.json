@@ -1,54 +1,96 @@
 {
-    "name": "Export Report",
-    "description": "Export a workflow report in different file formats.",
-    "tags": ["export", "reporting", "workflow"],
-    "authors": ["tercen"],
-    "urls": ["https://github.com/tercen/export_operator"],
-    "container":"tercen/export_operator:latest",
-    "properties": [
-        {
-            "kind": "EnumeratedProperty",
-            "name": "OutputFormat",
-            "defaultValue": "MS-PowerPoint (*.pptx)",
-            "description": "Format in which the report is exported.",
-            "values": [
-              "MS-PowerPoint (*.pptx)",
-              "MS-Word (*.docx)",
-              "PDF - Slides (*.pdf)",
-              "PDF - A4 (*.pdf)"
-            ]
-        },
-        {
-            "kind": "EnumeratedProperty",
-            "name": "SVGOptimization",
-            "defaultValue": "Bitmap Auto",
-            "description": "SVG plot simplification to reduce the quantity of individual scatter plot points.",
-            "values": [
-              "None",
-              "Bitmap",
-              "Bitmap Auto",
-              "Path"
-
-            ]
-        },
-
-        {
-          "kind": "EnumeratedProperty",
-          "name": "LabelPosition",
-          "defaultValue": "Right",
-          "description": "Position of the labels in the plot.",
-          "values": [
-            "Ignore",
-            "Left",
-            "Right"
-          ]
-      }
-    ],
-    "operatorSpec": {
-      "kind": "OperatorSpec",
-      "ontologyUri": "https://tercen.com/_ontology/tercen",
-      "ontologyVersion": "1.0.0",
-      "inputSpecs": [],
-      "outputSpecsV2": []
+  "name": "Export Report",
+  "description": "Export a workflow report in different file formats.",
+  "tags": [
+    "export",
+    "reporting",
+    "workflow"
+  ],
+  "authors": [
+    "tercen"
+  ],
+  "urls": [
+    "https://github.com/tercen/export_operator"
+  ],
+  "container": "tercen/export_operator:latest",
+  "properties": [
+    {
+      "kind": "EnumeratedProperty",
+      "name": "OutputFormat",
+      "defaultValue": "MS-PowerPoint (*.pptx)",
+      "description": "Format in which the report is exported.",
+      "values": [
+        "MS-PowerPoint (*.pptx)",
+        "MS-Word (*.docx)",
+        "PDF - Slides (*.pdf)",
+        "PDF - A4 (*.pdf)"
+      ]
+    },
+    {
+      "kind": "EnumeratedProperty",
+      "name": "SVGOptimization",
+      "defaultValue": "Bitmap Auto",
+      "description": "SVG plot simplification to reduce the quantity of individual scatter plot points.",
+      "values": [
+        "None",
+        "Bitmap",
+        "Bitmap Auto",
+        "Path"
+      ]
+    },
+    {
+      "kind": "EnumeratedProperty",
+      "name": "LabelPosition",
+      "defaultValue": "Right",
+      "description": "Position of the labels in the plot.",
+      "values": [
+        "Ignore",
+        "Left",
+        "Right"
+      ]
     }
+  ],
+  "operatorSpec": {
+    "kind": "OperatorSpec",
+    "ontologyUri": "https://tercen.com/_ontology/tercen",
+    "ontologyVersion": "1.0.0",
+    "inputSpecs": [],
+    "outputSpecsV2": [
+      {
+        "kind": "OperatorJoinSpec",
+        "description": "Outputs document artifact information",
+        "joinOperators": [
+          {
+            "kind": "JoinOperator",
+            "joinType": "left",
+            "leftPair": {
+              "kind": "ColumnPair",
+              "lColumns": [],
+              "rColumns": []
+            },
+            "rightRelation": {
+              "kind": "TableRelation",
+              "attributes": [
+                {
+                  "kind": "Attribute",
+                  "name": "mimetype",
+                  "type": "string"
+                },
+                {
+                  "kind": "Attribute",
+                  "name": "filename",
+                  "type": "string"
+                },
+                {
+                  "kind": "Attribute",
+                  "name": ".content",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
 }
