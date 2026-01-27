@@ -1,6 +1,6 @@
 #FROM tercen/runtime-python39:0.2.2
-FROM debian:bullseye-backports
-# backports is needed to have access to lib2geom in bullseye
+FROM debian:bookworm
+# Using bookworm (Debian 12) which has lib2geom in main repository
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y build-essential \
 	ca-certificates \
