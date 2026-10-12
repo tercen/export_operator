@@ -39,8 +39,12 @@ def table_to_file(ctx, schema, tmpFolder=None, force_png=False, svgOptimize="Bit
     fileInfos = []
     
     for filename, mimetype in zip(filenames, mimetypes):
+        # Only images and markdown go in a report. Other files in the workflow (an FCS zip, a CSV) are skipped
+        # before their content is fetched: it can be hundreds of MB.
+        if not (mimetype.startswith("image") or mimetype == "text/markdown"):
+            continue
         baseImgPath = tmpFolder + "/" + Path(filename).stem
-        
+
         
         fileContent = ctx.context.client.tableSchemaService.selectFileContentStream(schema.id, filename)
     
